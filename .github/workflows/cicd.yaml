@@ -34,6 +34,10 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Set lowercase IMAGE_NAME
+      id: limg
+      run: echo "image_name_lc=${{ env.IMAGE_NAME,, }}" >> $GITHUB_OUTPUT
+
     - name: Extract Git commit SHA
       id: vars
       run: echo "TAG=sha-${GITHUB_SHA::7}" >> $GITHUB_ENV
@@ -43,11 +47,11 @@ jobs:
       with:
         context: ./sample-app
         push: true
-        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG }}
+        tags: ${{ env.REGISTRY }}/${{ steps.limg.outputs.image_name_lc }}:${{ env.TAG }}
 
     - name: Update image tag in kustomization (dev for now)
       run: |
-        sed -i "s|image: .*$|image: ghcr.io/${{ env.IMAGE_NAME }}:${{ env.TAG }}|" overlays/dev/patch-deployment.yaml
+        sed -i "s|image: .*$|image: ghcr.io/${{ steps.limg.outputs.image_name_lc }}:${{ env.TAG }}|" overlays/dev/patch-deployment.yaml
 
     - name: Commit and push updated kustomization
       run: |
