@@ -1,0 +1,58 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'sample-app/**'            # Trigger only when app code changes
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/sample-app
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      packages: write
+      deployments: write
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to GHCR
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract Git commit SHA
+      id: vars
+      run: echo "TAG=sha-${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+    - name: Build and Push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./sample-app
+        push: true
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG }}
+
+    - name: Update image tag in kustomization (dev for now)
+      run: |
+        sed -i "s|image: .*$|image: ghcr.io/${{ env.IMAGE_NAME }}:${{ env.TAG }}|" overlays/dev/patch-deployment.yaml
+
+    - name: Commit and push updated kustomization
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git add overlays/dev/patch-deployment.yaml
+        git commit -m "Update dev image tag to ${{ env.TAG }}"
+        git push
