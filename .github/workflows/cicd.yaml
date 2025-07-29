@@ -38,7 +38,7 @@ jobs:
 
     - name: Set lowercase IMAGE_NAME
       id: limg
-      run: echo "image_name_lc=${{ env.IMAGE_NAME,, }}" >> $GITHUB_OUTPUT
+      run: echo "image_name_lc=${ env.IMAGE_NAME,, }" >> $GITHUB_OUTPUT
 
     - name: Extract Git commit SHA
       id: vars
