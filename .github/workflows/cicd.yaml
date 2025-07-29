@@ -11,7 +11,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/sample-app
+  #IMAGE_NAME: ${{ github.repository }}/sample-app
 
 jobs:
   build-and-deploy:
@@ -38,7 +38,9 @@ jobs:
 
     - name: Set lowercase IMAGE_NAME
       id: limg
-      run: echo "image_name_lc=${ env.IMAGE_NAME,, }" >> $GITHUB_OUTPUT
+      run: |
+        image_name=${{ github.repository }}/sample-app
+        echo "image_name_lc=${ image_name,, }" >> $GITHUB_OUTPUT
 
     - name: Extract Git commit SHA
       id: vars
