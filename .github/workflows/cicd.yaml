@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'sample-app/**'            # Trigger only when app code changes
+      - 'k8s/**'
+      - '.github/workflows/update-and-deploy.yaml'
   workflow_dispatch:
 
 env:
