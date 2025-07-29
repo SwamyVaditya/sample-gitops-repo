@@ -40,7 +40,7 @@ jobs:
       id: limg
       run: |
         image_name=${{ github.repository }}/sample-app
-        echo "image_name_lc=${ image_name,, }" >> $GITHUB_OUTPUT
+        echo "image_name_lc=${{ image_name,, }}" >> $GITHUB_OUTPUT
 
     - name: Extract Git commit SHA
       id: vars
