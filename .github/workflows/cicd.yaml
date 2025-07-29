@@ -65,6 +65,6 @@ jobs:
       run: |
         git config user.name github-actions
         git config user.email github-actions@github.com
-        git add overlays/dev/patch-deployment.yaml
+        git add k8s/overlays/dev/patch-deployment.yaml
         git commit -m "Update dev image tag to ${{ env.TAG }}"
         git push
