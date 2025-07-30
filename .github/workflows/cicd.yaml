@@ -39,8 +39,8 @@ jobs:
     - name: Set lowercase IMAGE_NAME
       id: set_image_name
       run: |
-        echo " Image Name: ${{ env.IMAGE_NAME }}"
-        echo "image_name_lc=${ env.IMAGE_NAME,, }" >> $GITHUB_OUTPUT
+        echo " Image Name: $IMAGE_NAME"
+        echo "image_name_lc=${IMAGE_NAME,,}" >> $GITHUB_OUTPUT
 
     
     - name: Extract short SHA
