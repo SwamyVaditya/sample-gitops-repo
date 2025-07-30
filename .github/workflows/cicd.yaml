@@ -39,29 +39,28 @@ jobs:
     - name: Set lowercase IMAGE_NAME
       id: set_image_name
       run: |
-        echo " Image Name: $IMAGE_NAME"
+        echo "Image Name: $IMAGE_NAME"
         echo "image_name_lc=${IMAGE_NAME,,}" >> $GITHUB_OUTPUT
 
-    
     - name: Extract short SHA
       id: short_sha
-      run: echo "TAG=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      run: echo "tag=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
     - name: Build and Push Docker image
       uses: docker/build-push-action@v5
       with:
         context: ./sample-app
         push: true
-        tags: ${{ env.REGISTRY }}/${{ steps.set_image_name.outputs.image_name_lc }}:${{ env.TAG }}
+        tags: ${{ env.REGISTRY }}/${{ steps.set_image_name.outputs.image_name_lc }}:${{ steps.short_sha.outputs.tag }}
 
     - name: Update image tag in kustomization (dev for now)
       run: |
-        sed -i "s|image: .*$|image: ghcr.io/${{ steps.set_image_name.outputs.image_name_lc }}:${{ env.TAG }}|" k8s/overlays/dev/patch-deployment.yaml
+        sed -i "s|image: .*$|image: ghcr.io/${{ steps.set_image_name.outputs.image_name_lc }}:${{ steps.short_sha.outputs.tag }}|" k8s/overlays/dev/patch-deployment.yaml
 
     - name: Commit and push updated kustomization
       run: |
         git config user.name github-actions
         git config user.email github-actions@github.com
         git add k8s/overlays/dev/patch-deployment.yaml
-        git commit -m "Update dev image tag to ${{ env.TAG }}"
+        git commit -m "Update dev image tag to ${{ steps.short_sha.outputs.tag }}"
         git push
