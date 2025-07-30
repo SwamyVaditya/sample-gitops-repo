@@ -6,7 +6,7 @@ on:
     paths:
       - 'sample-app/**'            # Trigger only when app code changes
       - 'k8s/**'
-      - '.github/workflows/update-and-deploy.yaml'
+      - '.github/workflows/cicd.yaml'
   #workflow_dispatch:
 
 env:
