@@ -95,7 +95,7 @@ jobs:
         git config user.email github-actions@github.com
         git add "$PATCH"
         git commit -m "Promote to $ENV: ${{ steps.short_sha.outputs.tag }}"
-        git push
+        git push origin HEAD:main
 
     - name: Log Deployment Metadata
       run: |
