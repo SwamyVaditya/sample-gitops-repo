@@ -8,4 +8,4 @@ spec:
     spec:
       containers:
         - name: sample-app
-          image: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app:f6be580
+          image: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app:b52baad
