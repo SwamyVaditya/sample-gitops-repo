@@ -6,7 +6,7 @@ on:
     paths:
       - 'sample-app/**'
       - 'k8s/**'
-      - '.github/workflows/cicd.yaml'
+    #  - '.github/workflows/cicd.yaml'
     tags:
       - 'promote-staging'
       - 'promote-prod'
@@ -93,6 +93,9 @@ jobs:
         sed -i "s|image: .*$|image: ghcr.io/${{ steps.set_image_name.outputs.image_name_lc }}:${{ steps.short_sha.outputs.tag }}|" "$PATCH"
         git config user.name github-actions
         git config user.email github-actions@github.com
+
+        git pull --rebase origin main  
+
         git add "$PATCH"
         git commit -m "Promote to $ENV: ${{ steps.short_sha.outputs.tag }}"
         git push origin HEAD:main
