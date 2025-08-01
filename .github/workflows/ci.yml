@@ -54,14 +54,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set lowercase IMAGE_NAME
+        id: set_image_name
+        run: echo "image_name_lc=${IMAGE_NAME,,}" >> $GITHUB_OUTPUT
+
       - name: Extract short SHA
-        id: vars
+        id: short_sha
         run: |
-          echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "tag=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./sample-app
           push: true
-          tags: ${{ env.REGISTRY }}/${{ github.repository }}/sample-app:${{ steps.vars.outputs.short_sha }}
+          tags: ${{ env.REGISTRY }}/${{ steps.set_image_name.outputs.image_name_lc }}:${{ steps.short_sha.outputs.tag }}
