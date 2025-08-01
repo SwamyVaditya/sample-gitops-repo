@@ -4,8 +4,3 @@ metadata:
   name: sample-app
 spec:
   replicas: 1
-  template:
-    spec:
-      containers:
-        - name: sample-app
-          image: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app:b52baad
