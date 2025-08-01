@@ -5,4 +5,4 @@ resources:
 patchesStrategicMerge:
   - patch-deployment.yaml
 images:
-  - newTag: c16dea2
+  - newTag: 19cff78
