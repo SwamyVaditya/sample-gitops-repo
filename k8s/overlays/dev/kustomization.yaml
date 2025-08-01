@@ -4,3 +4,5 @@ resources:
   - ../../base
 patchesStrategicMerge:
   - patch-deployment.yaml
+images:
+  - newTag: c16dea2
