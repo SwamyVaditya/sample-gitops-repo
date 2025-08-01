@@ -1,11 +1,11 @@
 namePrefix: dev-
 namespace: dev
 resources:
-- ../../base
+  - ../../base
 patches:
-- path: patch-deployment.yaml
+  - path: patch-deployment.yaml
 images:
-- name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
-  newTag: 19cff78
+  - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
+    newTag: 07d64e8
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
