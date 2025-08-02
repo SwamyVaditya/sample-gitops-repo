@@ -2,11 +2,10 @@ namePrefix: staging-
 namespace: staging
 resources:
   - ../../base
-
 patches:
   - path: patch-deployment.yaml
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
-    newTag: bbc5de9
+    newTag: 102515b
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
