@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/swamyvaditya/sample-gitops-repo.git
-    targetRevision: HEAD
+    targetRevision: dev
     path: k8s/overlays/dev
   destination:
     server: https://host.docker.internal:6444
