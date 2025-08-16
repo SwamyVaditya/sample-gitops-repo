@@ -1,0 +1,4 @@
+version: v1.0.0
+image_tag: a1b2c3d
+commit_sha: 0123456789abcdef
+promoted_at: "2025-08-02T15:30:00Z"
