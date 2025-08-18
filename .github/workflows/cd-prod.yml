@@ -196,73 +196,77 @@ jobs:
       # ✅ Success notification
       - name: Notify Slack (Success)
         if: success()
-        uses: slackapi/slack-github-action@v1.24.0
-        with:
-          payload: '{
-              "blocks": [
-                {
-                  "type": "header",
-                  "text": {
-                    "type": "plain_text",
-                    "text": "🚀 Production Release Successful"
-                  }
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*Version:* `${{ steps.semver.outputs.next }}`\n*Repository:* `${{ github.repository }}`"
-                  }
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*Changelog (Top 5):*\n${{ steps.slack_changelog.outputs.formatted }}"
-                  }
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "🔗 <https://github.com/${{ github.repository }}/releases/tag/${{ steps.semver.outputs.next }}|View full release notes>"
-                  }
-                }
-              ]
-            }'
+        run: |
+          jq -n --arg version "${{ steps.semver.outputs.next }}" \
+                --arg repo "${{ github.repository }}" \
+                --arg changelog "${{ steps.slack_changelog.outputs.formatted }}" \
+                --arg url "https://github.com/${{ github.repository }}/releases/tag/${{ steps.semver.outputs.next }}" \
+          '{
+            blocks: [
+              {
+                type: "header",
+                text: { type: "plain_text", text: "🚀 Production Release Successful" }
+              },
+              {
+                type: "section",
+                text: { type: "mrkdwn", text: "*Version:* \($version)\n*Repository:* \($repo)" }
+              },
+              {
+                type: "section",
+                text: { type: "mrkdwn", text: "*Changelog (Top 5):*\n\($changelog)" }
+              },
+              {
+                type: "section",
+                text: { type: "mrkdwn", text: "🔗 <\($url)|View full release notes>" }
+              }
+            ]
+          }' > payload.json
+
+          curl -X POST -H 'Content-type: application/json' \
+            --data @payload.json \
+            $SLACK_WEBHOOK_URL
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
 
       # ❌ Failure notification
       - name: Notify Slack (Failure)
         if: failure()
-        uses: slackapi/slack-github-action@v1.24.0
-        with:
-          payload: '{
-              "blocks": [
-                {
-                  "type": "header",
-                  "text": {
-                    "type": "plain_text",
-                    "text": "❌ Production Release Failed"
-                  }
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*Repository:* `${{ github.repository }}`\n*Commit:* <${{ github.event.pull_request.html_url || github.server_url }}#${{ github.sha }}|${{ github.sha }}>"
-                  }
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "🔍 Check the workflow logs: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>"
-                  }
+        run: |
+          jq -n --arg repo "$GITHUB_REPOSITORY" \
+                --arg sha "$GITHUB_SHA" \
+                --arg run_id "$GITHUB_RUN_ID" \
+                --arg server_url "$GITHUB_SERVER_URL" '
+          {
+            blocks: [
+              {
+                type: "header",
+                text: {
+                  type: "plain_text",
+                  text: "❌ Production Release Failed"
                 }
-              ]
-            }'
+              },
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: "*Repository:* `\($repo)`\n*Commit:* <\($server_url)/\($repo)/commit/\($sha)|\($sha)>"
+                }
+              },
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: "🔍 Check the workflow logs: <\($server_url)/\($repo)/actions/runs/\($run_id)|View Logs>"
+                }
+              }
+            ]
+          }' > payload.json
+
+          curl -X POST -H 'Content-type: application/json' \
+            --data @payload.json \
+            $SLACK_WEBHOOK_URL
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
 
