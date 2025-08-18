@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 
 app.get("/", (req, res) => {
-  res.send("Testing workflows - dev (short-sha) → staging (timestamp tag) → prod (semantic version)");
+  res.send("Testing workflows - GitHub PR Labeling and ArgoCD");
 });
 
 const port = process.env.PORT || 3000;
