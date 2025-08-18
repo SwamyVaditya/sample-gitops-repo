@@ -165,6 +165,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Create GitHub Release
+        id: gh_release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.semver.outputs.next }}
@@ -178,3 +179,92 @@ jobs:
             ${{ steps.changelog.outputs.notes }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Truncate changelog for Slack
+        id: slack_changelog
+        run: |
+          echo "${{ steps.changelog.outputs.notes }}" | head -n 5 > changelog_top.txt
+          total=$(echo "${{ steps.changelog.outputs.notes }}" | wc -l)
+          if [ "$total" -gt 5 ]; then
+            echo "... and $((total-5)) more" >> changelog_top.txt
+          fi
+          echo "formatted<<EOF" >> $GITHUB_OUTPUT
+          cat changelog_top.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      
+      # ✅ Success notification
+      - name: Notify Slack (Success)
+        if: success()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "🚀 Production Release Successful"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Version:* `${{ steps.semver.outputs.next }}`\n*Repository:* `${{ github.repository }}`"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Changelog (Top 5):*\n${{ steps.slack_changelog.outputs.formatted }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "🔗 <https://github.com/${{ github.repository }}/releases/tag/${{ steps.semver.outputs.next }}|View full release notes>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      # ❌ Failure notification
+      - name: Notify Slack (Failure)
+        if: failure()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "❌ Production Release Failed"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Repository:* `${{ github.repository }}`\n*Commit:* <${{ github.event.pull_request.html_url || github.server_url }}#${{ github.sha }}|${{ github.sha }}>"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "🔍 Check the workflow logs: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
