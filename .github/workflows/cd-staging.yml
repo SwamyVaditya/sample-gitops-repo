@@ -33,6 +33,7 @@ jobs:
             exit 1
           fi
           echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "✅ Found image tag: $TAG"
 
       - name: Update staging overlay with new image tag
         run: |
