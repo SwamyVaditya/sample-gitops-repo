@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 
 app.get("/", (req, res) => {
-  res.send("Testing workflows - PR Labeling bump:minor");
+  res.send("Testing and debugging workflows");
 });
 
 const port = process.env.PORT || 3000;
