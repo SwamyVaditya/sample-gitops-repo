@@ -1,9 +1,17 @@
 name: CD to Dev
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI Pipeline"]    # name from ci.yml
+    types:
+      - completed
     branches:
       - dev
+
+#on:
+#  push:
+#    branches:
+#      - dev
 
 env:
   REGISTRY: ghcr.io
@@ -11,6 +19,9 @@ env:
 
 jobs:
   deploy-dev:
+    
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'dev' }}  # Optional extra branch check
+    
     runs-on: ubuntu-latest
 
     permissions:
@@ -20,7 +31,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }} # Checkout the branch from the triggering CI (dev)
       - name: Set lowercase image name
         id: image_name
         run: echo "name=${IMAGE_NAME,,}" >> $GITHUB_OUTPUT

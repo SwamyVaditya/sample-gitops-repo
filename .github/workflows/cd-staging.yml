@@ -25,9 +25,21 @@ jobs:
         id: image_name
         run: echo "name=${IMAGE_NAME,,}" >> $GITHUB_OUTPUT
 
-      - name: Extract short SHA
-        id: short_sha
-        run: echo "tag=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      - name: Get image tag from dev overlay
+        id: dev_tag
+        run: |
+          TAG=$(yq eval '.images[0].newTag' k8s/overlays/dev/kustomization.yaml)
+          if [ -z "$TAG" ]; then
+            echo "❌ No image tag found in dev overlay"
+            exit 1
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+          echo "✅ Found image tag: $TAG"
+            
+      #- name: Extract short SHA
+      #  id: short_sha
+      #  run: echo "tag=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -38,26 +50,34 @@ jobs:
 
       - name: Pull image from CI build
         run: |
-          docker pull ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.short_sha.outputs.tag }}
+          docker pull ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.dev_tag.outputs.tag }}
 
       - name: Retag and push image (staging tag)
+        id: retag_push
         run: |
-          STAGING_TAG=staging-${{ steps.short_sha.outputs.tag }}
+          
+          tag=$(echo $steps.dev_tag.outputs.tag | cut -d '-' -f 2)
+          STAGING_TAG=staging-$tag
 
-          docker tag ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.short_sha.outputs.tag }} \
+          docker tag ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.dev_tag.outputs.tag }} \
                      ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:$STAGING_TAG
 
           docker push ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:$STAGING_TAG
 
-      - name: Update kustomization.yaml with new image tag
+          echo "staging_tag=$STAGING_TAG" >> $GITHUB_OUTPUT
+
+          echo "✅ Staging tag: $STAGING_TAG"
+
+            
+      - name: Update staging overlay with new image tag
         run: |
-          echo "Updating image to staging-${{ steps.short_sha.outputs.tag }}"
-          yq eval ".images[0].newTag = \"staging-${{ steps.short_sha.outputs.tag }}\"" -i k8s/overlays/staging/kustomization.yaml
+          echo "Updating image to ${{ steps.retag_push.outputs.tag }}"
+          yq eval ".images[0].newTag = \"${{ steps.retag_push.outputs.tag }}\"" -i k8s/overlays/staging/kustomization.yaml
 
       - name: Commit updated kustomization.yaml
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add k8s/overlays/staging/kustomization.yaml
-          git commit -m "chore(staging): update image tag to staging-${{ steps.short_sha.outputs.tag }}"
+          git commit -m "chore(staging): update image tag to ${{ steps.retag_push.outputs.tag }}"
           git push
