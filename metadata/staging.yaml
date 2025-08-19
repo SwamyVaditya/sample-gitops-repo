@@ -1,4 +1,4 @@
-version: staging-20250819002456
-image_tag: 61b0927
-commit_sha: bdc7a18d8e168bbc1edb166efdf5ca63d5b87770
-promoted_at: "2025-08-19T00:24:56Z"
+version: staging-20250819004248
+image_tag: de022f1
+commit_sha: 793ef199dd173a5c24a0be633a44cc59629b9709
+promoted_at: "2025-08-19T00:42:48Z"
