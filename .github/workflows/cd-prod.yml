@@ -273,56 +273,43 @@ jobs:
       - name: Notify Slack (Final Status)
         if: always()
         run: |
-          if [[ "${{ job.status }}" == "success" ]]; then
-            STATUS_EMOJI=":white_check_mark:"
-            STATUS_TEXT="Workflow finished successfully"
-            COLOR="#2eb886"
-          elif [[ "${{ job.status }}" == "failure" ]]; then
-            STATUS_EMOJI=":x:"
-            STATUS_TEXT="Workflow failed"
-            COLOR="#e01e5a"
-          else
-            STATUS_EMOJI=":warning:"
-            STATUS_TEXT="Workflow finished with status: ${{ job.status }}"
-            COLOR="#daa038"
+          STATUS="${{ job.status }}"
+          COLOR="#36a64f"
+          ICON=":white_check_mark:"
+          if [ "$STATUS" != "success" ]; then
+            COLOR="#FF0000"
+            ICON=":x:"
           fi
 
-          SLACK_MESSAGE=$(jq -nc --arg emoji "$STATUS_EMOJI" \
-                                --arg text "$STATUS_TEXT" \
-                                --arg repo "${{ github.repository }}" \
-                                --arg ref "${{ github.ref_name }}" \
-                                --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+          jq -nc --arg icon "$ICON" \
+            --arg status "$STATUS" \
+            --arg repo "${{ github.repository }}" \
+            --arg branch "${{ github.ref_name }}" \
+            --arg sha "${{ github.sha }}" \
+            --arg image "${{ env.IMAGE_TAG }}" \
+            --arg env "production" \
             '{
               "blocks": [
                 {
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "\($emoji) *Workflow Status Update*\n\($text)"
+                    "text": "\($icon) *Workflow Status Update*"
                   }
                 },
                 {
-                  "type": "context",
-                  "elements": [
+                  "type": "section",
+                  "fields": [
+                    { "type": "mrkdwn", "text": "*Status:* \($status)" },
                     { "type": "mrkdwn", "text": "*Repository:* \($repo)" },
-                    { "type": "mrkdwn", "text": "*Branch:* \($ref)" }
-                  ]
-                },
-                {
-                  "type": "actions",
-                  "elements": [
-                    {
-                      "type": "button",
-                      "text": { "type": "plain_text", "text": "View Run" },
-                      "url": "\($run_url)"
-                    }
+                    { "type": "mrkdwn", "text": "*Branch:* \($branch)" },
+                    { "type": "mrkdwn", "text": "*Commit SHA:* \($sha)" },
+                    { "type": "mrkdwn", "text": "*Image Tag:* \($image)" },
+                    { "type": "mrkdwn", "text": "*Environment:* \($env)" }
                   ]
                 }
               ]
-            }')
+            }' \
+          | curl -X POST -H 'Content-type: application/json' \
+            --data @- ${{ secrets.SLACK_WEBHOOK }}
 
-          curl -X POST -H 'Content-type: application/json' \
-            --data "$SLACK_MESSAGE" \
-            $SLACK_WEBHOOK_URL
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
