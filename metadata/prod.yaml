@@ -1,4 +1,4 @@
-version: v1.3.5
-image_tag: de022f1
-commit_sha: 1d33bb039dc7dfcbbb34fbd061a386f06c245045
-promoted_at: "2025-08-19T00:44:54Z"
+version: v1.3.6
+image_tag: 6f12676
+commit_sha: 3ae38c53c544868fafa4628f011eecbd196185a6
+promoted_at: "2025-08-19T01:19:37Z"
