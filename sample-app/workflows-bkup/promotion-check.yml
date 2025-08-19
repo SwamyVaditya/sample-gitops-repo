@@ -1,0 +1,24 @@
+name: Promotion Checks
+
+on:
+  pull_request:
+    branches:
+      - staging
+      - main
+
+jobs:
+  validate-promotion:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify image tag exists in dev overlay
+        run: |
+          IMAGE_TAG=$(yq eval '.images[0].newTag' k8s/overlays/dev/kustomization.yaml)
+          echo "Found image tag in dev: $IMAGE_TAG"
+
+          if [ -z "$IMAGE_TAG" ]; then
+            echo "❌ No image tag found in dev overlay"
+            exit 1
+          fi
