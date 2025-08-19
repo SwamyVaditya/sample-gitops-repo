@@ -56,7 +56,7 @@ jobs:
         id: retag_push
         run: |
           
-          tag=$(echo $steps.dev_tag.outputs.tag | cut -d '-' -f 2)
+          tag=$(echo ${{ steps.dev_tag.outputs.tag }} | cut -d '-' -f 2)
           STAGING_TAG=staging-$tag
 
           docker tag ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.dev_tag.outputs.tag }} \
@@ -71,8 +71,8 @@ jobs:
             
       - name: Update staging overlay with new image tag
         run: |
-          echo "Updating image to ${{ steps.retag_push.outputs.tag }}"
-          yq eval ".images[0].newTag = \"${{ steps.retag_push.outputs.tag }}\"" -i k8s/overlays/staging/kustomization.yaml
+          echo "Updating image to ${{ steps.retag_push.outputs.staging_tag }}"
+          yq eval ".images[0].newTag = \"${{ steps.retag_push.outputs.staging_tag }}\"" -i k8s/overlays/staging/kustomization.yaml
 
       - name: Commit updated kustomization.yaml
         run: |

@@ -6,6 +6,6 @@ patches:
   - path: patch-deployment.yaml
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
-    newTag: "dev-198fd70"
+    newTag: "dev-61c12eb"
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
