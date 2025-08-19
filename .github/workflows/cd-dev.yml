@@ -5,6 +5,8 @@ on:
     workflows: ["CI Pipeline"]    # name from ci.yml
     types:
       - completed
+    branches:
+      - dev
 
 #on:
 #  push:
@@ -18,7 +20,7 @@ env:
 jobs:
   deploy-dev:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    
+
     runs-on: ubuntu-latest
 
     permissions:
