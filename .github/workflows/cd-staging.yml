@@ -56,7 +56,7 @@ jobs:
         id: retag_push
         run: |
           
-          tag=$(echo $steps.dev_tag.outputs.tag | cut -d '-' -f 2)
+          tag=$(echo ${{ steps.dev_tag.outputs.tag }} | cut -d '-' -f 2)
           STAGING_TAG=staging-$tag
 
           docker tag ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.dev_tag.outputs.tag }} \
