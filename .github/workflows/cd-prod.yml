@@ -268,69 +268,32 @@ jobs:
             $SLACK_WEBHOOK_URL
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-    
-      # ✅ Slack Notification (Final Always)
+
       - name: Notify Slack (Final Status)
         if: always()
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          set -euo pipefail
-
-          # Ensure jq exists (usually present on ubuntu-latest, but just in case)
-          if ! command -v jq >/dev/null 2>&1; then
-            sudo apt-get update -y
-            sudo apt-get install -y jq
+          STATUS="✅ Success"
+          if [ "${{ job.status }}" != "success" ]; then
+            STATUS="❌ Failed"
           fi
 
-          STATUS="${{ job.status }}"
-          ICON=":white_check_mark:"
-          COLOR="#36a64f"
-          if [ "$STATUS" != "success" ]; then
-            ICON=":x:"
-            COLOR="#FF0000"
-          fi
+          COMMIT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          IMAGE_TAG=$COMMIT_SHA
+          ENVIRONMENT="${{ inputs.environment || 'dev' }}"
 
-          # Image tag promoted to prod (from staging overlay step)
-          IMAGE_TAG="${{ steps.staging_tag.outputs.tag }}"
-          if [ -z "$IMAGE_TAG" ]; then
-            IMAGE_TAG="unknown"
-          fi
-
-          ENVIRONMENT="production"
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
-          jq -nc \
-            --arg icon "$ICON" \
-            --arg status "$STATUS" \
-            --arg env "$ENVIRONMENT" \
-            --arg repo "${{ github.repository }}" \
-            --arg branch "${{ github.ref_name }}" \
-            --arg sha "${{ github.sha }}" \
-            --arg image "$IMAGE_TAG" \
-            --arg run_url "$RUN_URL" \
-            '{
-              "blocks": [
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{
+              \"blocks\": [
                 {
-                  "type": "section",
-                  "text": {"type": "mrkdwn", "text": "\($icon) *Workflow Status Update*"}
-                },
-                {
-                  "type": "section",
-                  "fields": [
-                    {"type": "mrkdwn", "text": "*Status:* \($status)"},
-                    {"type": "mrkdwn", "text": "*Environment:* \($env)"},
-                    {"type": "mrkdwn", "text": "*Repository:* \($repo)"},
-                    {"type": "mrkdwn", "text": "*Branch:* \($branch)"},
-                    {"type": "mrkdwn", "text": "*Commit:* `\($sha)`"},
-                    {"type": "mrkdwn", "text": "*Image Tag:* \($image)"}
-                  ]
-                },
-                {
-                  "type": "section",
-                  "text": {"type": "mrkdwn", "text": "🔗 <\($run_url)|Open workflow run>"}
+                  \"type\": \"section\",
+                  \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"*Deployment Notification*\\nStatus: ${STATUS}\\n*Commit SHA:* ${COMMIT_SHA}\\n*Image Tag:* ${IMAGE_TAG}\\n*Environment:* ${ENVIRONMENT}\"
+                  }
                 }
               ]
-            }' \
-          | curl -sS -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL"
+            }" \
+            $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
