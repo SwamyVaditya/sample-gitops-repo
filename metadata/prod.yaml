@@ -1,4 +1,4 @@
-version: v1.3.2
-image_tag: 3696395
-commit_sha: 99d93ce83cdbe03c2494088e93b04f41e659cdad
-promoted_at: "2025-08-18T23:50:57Z"
+version: v1.3.3
+image_tag: 61b0927
+commit_sha: d63fb26a9f993ca28c9ca905a968e73d45b411f3
+promoted_at: "2025-08-19T00:25:18Z"
