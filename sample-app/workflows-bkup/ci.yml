@@ -59,13 +59,12 @@ jobs:
 
       - name: Extract short SHA
         id: short_sha
-        run: echo "tag=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: |
+          echo "tag=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Build and push Docker image (dev + SHA)
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./sample-app
           push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ steps.set_image_name.outputs.image_name_lc }}:${{ steps.short_sha.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ steps.set_image_name.outputs.image_name_lc }}:dev-latest
+          tags: ${{ env.REGISTRY }}/${{ steps.set_image_name.outputs.image_name_lc }}:${{ steps.short_sha.outputs.tag }}

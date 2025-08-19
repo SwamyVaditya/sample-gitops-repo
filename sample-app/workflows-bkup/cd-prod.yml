@@ -1,0 +1,300 @@
+name: CD to Prod
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/sample-app
+  VERSION_FILE: metadata/prod_version.txt
+
+jobs:
+  deploy-prod:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set lowercase image name
+        id: image_name
+        run: echo "name=${IMAGE_NAME,,}" >> $GITHUB_OUTPUT
+
+      - name: Get image tag from staging overlay
+        id: staging_tag
+        run: |
+          TAG=$(yq eval '.images[0].newTag' k8s/overlays/staging/kustomization.yaml)
+          if [ -z "$TAG" ]; then
+            echo "❌ No image tag found in staging overlay"
+            exit 1
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+          echo "✅ Found image tag: $TAG"
+
+      - name: Fetch PR labels from staging -> main merge
+        id: pr_labels
+        run: |
+          PR_NUMBER=$(git log -1 --pretty=%B | grep -oE '#[0-9]+' | tr -d '#')
+          echo "Detected PR number: $PR_NUMBER"
+
+          if [ -n "$PR_NUMBER" ]; then
+            LABELS=$(gh pr view $PR_NUMBER --json labels --jq '.labels[].name')
+          else
+            LABELS=""
+          fi
+
+          echo "Labels found: $LABELS"
+          echo "labels=$LABELS" >> $GITHUB_OUTPUT
+          
+          echo "✅ Fetched PR labels: $LABELS"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Determine next semantic version
+        id: semver
+        run: |
+          mkdir -p metadata
+          if [ -f "$VERSION_FILE" ]; then
+            CURRENT=$(cat $VERSION_FILE)
+          else
+            CURRENT="v1.0.0"
+          fi
+
+          echo "🔹 Current version: $CURRENT"
+
+          MAJOR=$(echo $CURRENT | cut -d. -f1 | tr -d v)
+          MINOR=$(echo $CURRENT | cut -d. -f2)
+          PATCH=$(echo $CURRENT | cut -d. -f3)
+
+          BUMP_TYPE="patch"
+          if echo "${{ steps.pr_labels.outputs.labels }}" | grep -q "bump:major"; then
+            BUMP_TYPE="major"
+          elif echo "${{ steps.pr_labels.outputs.labels }}" | grep -q "bump:minor"; then
+            BUMP_TYPE="minor"
+          elif echo "${{ steps.pr_labels.outputs.labels }}" | grep -q "bump:patch"; then
+            BUMP_TYPE="patch"
+          fi
+
+          echo "📦 Bump type: $BUMP_TYPE"
+
+          if [ "$BUMP_TYPE" = "major" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif [ "$BUMP_TYPE" = "minor" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          else
+            PATCH=$((PATCH + 1))
+          fi
+
+          NEXT="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "$NEXT" > $VERSION_FILE
+          echo "next=$NEXT" >> $GITHUB_OUTPUT
+          echo "🔹 Next version: $NEXT"
+
+      - name: Update prod overlay with new image tag
+        run: |
+          yq eval ".images[0].newTag = \"${{ steps.staging_tag.outputs.tag }}\"" -i k8s/overlays/prod/kustomization.yaml
+
+      - name: Create prod metadata
+        run: |
+          COMMIT_SHA=$(git rev-parse HEAD)
+          NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          
+          mkdir -p metadata
+          
+          cat <<EOF > metadata/prod.yaml
+          version: ${{ steps.semver.outputs.next }}
+          image_tag: ${{ steps.staging_tag.outputs.tag }}
+          commit_sha: $COMMIT_SHA
+          promoted_at: "$NOW"
+          EOF
+
+          echo "✅ Metadata written for prod"
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add k8s/overlays/prod/kustomization.yaml metadata/prod.yaml $VERSION_FILE
+          git commit -m "chore(prod): promote image ${{ steps.staging_tag.outputs.tag }} as ${{ steps.semver.outputs.next }}"
+          git push
+
+      - name: Create Git Tag
+        run: |
+          git tag ${{ steps.semver.outputs.next }}
+          git push origin ${{ steps.semver.outputs.next }}
+
+      - name: Generate PR-based changelog
+        id: changelog
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 --tags --exclude=${{ steps.semver.outputs.next }} 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            RANGE=""
+          else
+            RANGE="$LAST_TAG..HEAD"
+          fi
+
+          PR_LIST=$(git log $RANGE --pretty=format:"%s" | grep -oE '#[0-9]+' | tr -d '#' | sort -u)
+
+          NOTES=""
+          for PR in $PR_LIST; do
+            TITLE=$(gh pr view $PR --json title --jq '.title')
+            NOTES="${NOTES}- ${TITLE} (#${PR})"$'\n'
+          done
+
+          if [ -z "$NOTES" ]; then
+            NOTES="No PRs found for this release."
+          fi
+
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Create GitHub Release
+        id: gh_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.semver.outputs.next }}
+          name: "Release ${{ steps.semver.outputs.next }}"
+          body: |
+            ## 🚀 Production Release ${{ steps.semver.outputs.next }}
+            **Image Tag:** `${{ steps.staging_tag.outputs.tag }}`
+            **Commit:** `${{ github.sha }}`
+
+            ### Changes in this release:
+            ${{ steps.changelog.outputs.notes }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Truncate changelog for Slack
+        id: slack_changelog
+        run: |
+          echo "${{ steps.changelog.outputs.notes }}" | head -n 5 > changelog_top.txt
+          total=$(echo "${{ steps.changelog.outputs.notes }}" | wc -l)
+          if [ "$total" -gt 5 ]; then
+            echo "... and $((total-5)) more" >> changelog_top.txt
+          fi
+          echo "formatted<<EOF" >> $GITHUB_OUTPUT
+          cat changelog_top.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      
+      # ✅ Success notification
+      - name: Notify Slack (Success)
+        if: success()
+        run: |
+          jq -n --arg version "${{ steps.semver.outputs.next }}" \
+                --arg repo "${{ github.repository }}" \
+                --arg changelog "${{ steps.slack_changelog.outputs.formatted }}" \
+                --arg url "https://github.com/${{ github.repository }}/releases/tag/${{ steps.semver.outputs.next }}" \
+          '{
+            blocks: [
+              {
+                type: "header",
+                text: { type: "plain_text", text: "🚀 Production Release Successful" }
+              },
+              {
+                type: "section",
+                text: { type: "mrkdwn", text: "*Version:* \($version)\n*Repository:* \($repo)" }
+              },
+              {
+                type: "section",
+                text: { type: "mrkdwn", text: "*Changelog (Top 5):*\n\($changelog)" }
+              },
+              {
+                type: "section",
+                text: { type: "mrkdwn", text: "🔗 <\($url)|View full release notes>" }
+              }
+            ]
+          }' > payload.json
+
+          curl -X POST -H 'Content-type: application/json' \
+            --data @payload.json \
+            $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+
+      # ❌ Failure notification
+      - name: Notify Slack (Failure)
+        if: failure()
+        run: |
+          jq -n --arg repo "$GITHUB_REPOSITORY" \
+                --arg sha "$GITHUB_SHA" \
+                --arg run_id "$GITHUB_RUN_ID" \
+                --arg server_url "$GITHUB_SERVER_URL" '
+          {
+            blocks: [
+              {
+                type: "header",
+                text: {
+                  type: "plain_text",
+                  text: "❌ Production Release Failed"
+                }
+              },
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: "*Repository:* `\($repo)`\n*Commit:* <\($server_url)/\($repo)/commit/\($sha)|\($sha)>"
+                }
+              },
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: "🔍 Check the workflow logs: <\($server_url)/\($repo)/actions/runs/\($run_id)|View Logs>"
+                }
+              }
+            ]
+          }' > payload.json
+
+          curl -X POST -H 'Content-type: application/json' \
+            --data @payload.json \
+            $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+     
+      - name: Notify Slack (Final Status)
+        if: always()
+        run: |
+          STATUS="✅ Success"
+          if [ "${{ job.status }}" != "success" ]; then
+            STATUS="❌ Failed"
+          fi
+
+          COMMIT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          IMAGE_TAG=$COMMIT_SHA
+          ENVIRONMENT="prod"
+
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{
+              \"blocks\": [
+                {
+                  \"type\": \"section\",
+                  \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"*Deployment Notification*\\n*Status:* ${STATUS}\\n*Commit SHA:* ${COMMIT_SHA}\\n*Image Tag:* ${IMAGE_TAG}\\n*Environment:* ${ENVIRONMENT}\"
+                  }
+                }
+              ]
+            }" \
+            $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+          
