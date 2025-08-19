@@ -1,4 +1,4 @@
-version: v1.3.3
+version: v1.3.4
 image_tag: 61b0927
-commit_sha: d63fb26a9f993ca28c9ca905a968e73d45b411f3
-promoted_at: "2025-08-19T00:25:18Z"
+commit_sha: 2c704cfddbdfbda90d0cd246e79140b074fd2f5d
+promoted_at: "2025-08-19T00:27:45Z"
