@@ -5,6 +5,9 @@ on:
     workflows: ["CI Pipeline"]    # name from ci.yml
     types:
       - completed
+  push:
+    branches:
+      - dev
 
 #on:
 #  push:
