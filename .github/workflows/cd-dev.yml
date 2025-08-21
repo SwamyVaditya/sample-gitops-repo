@@ -21,7 +21,7 @@ jobs:
 
     permissions:
       contents: write
-      packages: read
+      packages: write
 
     steps:
       - name: Checkout repo (dev)
