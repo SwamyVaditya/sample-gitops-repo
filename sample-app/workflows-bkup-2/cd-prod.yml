@@ -1,0 +1,140 @@
+name: CD to Prod
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'   # e.g. v1.3.2
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/sample-app
+  VERSION_FILE: metadata/prod_version.txt
+
+jobs:
+  deploy-prod:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      packages: write
+      pull-requests: read
+
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set lowercase image name
+        id: image_name
+        run: echo "name=${IMAGE_NAME,,}" >> $GITHUB_OUTPUT
+
+      - name: Get image tag from staging overlay
+        id: staging_tag
+        run: |
+          TAG=$(yq eval '.images[0].newTag' k8s/overlays/staging/kustomization.yaml)
+          if [ -z "$TAG" ]; then
+            echo "❌ No image tag found in staging overlay"
+            exit 1
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+          echo "✅ Found image tag: $TAG"
+      
+      - name: Determine next semantic version
+        id: semver
+        run: |
+          mkdir -p metadata
+          if [ -f "$VERSION_FILE" ]; then
+            CURRENT=$(cat $VERSION_FILE)
+          else
+            CURRENT="v1.0.0"
+          fi
+
+          MAJOR=$(echo $CURRENT | cut -d. -f1 | tr -d v)
+          MINOR=$(echo $CURRENT | cut -d. -f2)
+          PATCH=$(echo $CURRENT | cut -d. -f3)
+
+          PATCH=$((PATCH + 1))
+          NEXT="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "$NEXT" > $VERSION_FILE
+          echo "next=$NEXT" >> $GITHUB_OUTPUT
+
+          echo "✅ Next version: $NEXT"
+      
+      - name: Update prod overlay with new image tag
+        run: |
+          echo "Updating image to ${{ steps.semver.outputs.next }}"
+          yq eval ".images[0].newTag = \"${{ steps.semver.outputs.next }}\"" -i k8s/overlays/prod/kustomization.yaml
+  
+      - name: Get release version
+        id: release
+        run: echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+        # e.g. v1.3.2
+
+      - name: Update kustomization.yaml with release image tag
+        run: |
+          echo "Updating image to ${{ steps.release.outputs.version }}"
+          yq eval ".images[0].newTag = \"${{ steps.release.outputs.version }}\"" -i k8s/overlays/prod/kustomization.yaml
+    
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image from staging overlay
+        run: |
+          docker pull ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.staging_tag.outputs.tag }}
+
+      - name: Retag and push image (prod release tag + SHA backup)
+        run: |
+          PROD_TAG=${{ steps.release.outputs.version }}
+          PROD_TAG=${{ steps.semver.outputs.next }}
+          SHA_TAG=prod-${{ steps.staging_tag.outputs.tag }}
+
+          # Retag for versioned release
+          docker tag ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.staging_tag.outputs.tag }} \
+                     ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:$PROD_TAG
+
+          # Retag also with SHA (for traceability)
+          docker tag ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.staging_tag.outputs.tag }} \
+                     ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:$SHA_TAG
+
+          # Push both
+          docker push ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:$PROD_TAG
+          docker push ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:$SHA_TAG
+
+      - name: Update kustomization.yaml with release image tag
+        run: |
+          echo "Updating image to ${{ steps.release.outputs.version }}"
+          yq eval ".images[0].newTag = \"${{ steps.release.outputs.version }}\"" -i k8s/overlays/prod/kustomization.yaml
+      
+      - name: Create prod metadata
+        run: |
+          COMMIT_SHA=$(git rev-parse HEAD)
+          NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          mkdir -p metadata
+          cat <<EOF > metadata/prod.yaml
+          version: ${{ steps.semver.outputs.next }}
+          image_tag: ${{ steps.semver.outputs.next }}
+          commit_sha: $COMMIT_SHA
+          promoted_at: "$NOW"
+          EOF
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add k8s/overlays/prod/kustomization.yaml metadata/prod.yaml $VERSION_FILE
+          git commit -m "chore(prod): update image tag to ${{ steps.release.outputs.version }}"
+          git commit -m "chore(prod): promote image ${{ steps.staging_tag.outputs.tag }} as ${{ steps.semver.outputs.next }}"
+          git push
+
+      - name: Create Git Tag
+        run: |
+          git tag ${{ steps.semver.outputs.next }}
+          git push origin ${{ steps.semver.outputs.next }}
