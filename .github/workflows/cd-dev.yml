@@ -53,9 +53,12 @@ jobs:
 
       - name: Retag and push image (dev tag)
         run: |
+
+          docker pull ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.sha.outputs.short }}
+
           # Retag image - dev-latest
           # This is optional, but useful for always having a "latest" tag for dev
-          docker tag ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.sha.outputs.tag }} \
+          docker tag ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.sha.outputs.short }} \
                      ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:dev-latest
 
           # Push new tags
