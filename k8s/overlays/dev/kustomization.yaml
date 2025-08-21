@@ -6,6 +6,6 @@ patches:
   - path: patch-deployment.yaml
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
-    newTag: "bd2dee6"
+    newTag: "d103b31"
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
