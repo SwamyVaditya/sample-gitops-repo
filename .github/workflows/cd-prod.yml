@@ -1,13 +1,14 @@
 name: CD to Prod
 
+# 🔁 Trigger when changes land on main (via PR merge staging -> main)
 on:
   push:
-    tags:
-      - 'v*.*.*'   # e.g. v1.3.2
+    branches: [ "main" ]
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/sample-app
+  VERSION_FILE: metadata/prod_version.txt
 
 jobs:
   deploy-prod:
@@ -16,61 +17,176 @@ jobs:
     permissions:
       contents: write
       packages: write
+      pull-requests: read
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repo (main)
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
-      - name: Set lowercase image name
+      - name: Lowercase image name
         id: image_name
         run: echo "name=${IMAGE_NAME,,}" >> $GITHUB_OUTPUT
 
-      - name: Extract short SHA
+      # 🧩 Read the RC tag from staging overlay (merged into main)
+      - name: Get RC tag from staging overlay
+        id: staging_rc
+        run: |
+          TAG=$(yq eval '.images[0].newTag' k8s/overlays/staging/kustomization.yaml)
+          if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
+            echo "❌ No tag found in staging overlay"; exit 1
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "✅ RC tag: $TAG"
+
+      - name: Derive source short SHA (from RC)
         id: short_sha
-        run: echo "tag=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: |
+          # RC looks like vX.Y.Z-rc.N — we want the original short SHA from staging metadata if needed,
+          # but we can simply pull the RC image and re-tag to stable; no need to recover the SHA.
+          echo "sha_from_rc=${{ steps.staging_rc.outputs.tag }}" >> $GITHUB_OUTPUT
 
-      - name: Get release version
-        id: release
-        run: echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
-        # e.g. v1.3.2
-
-      - name: Log in to GitHub Container Registry
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull image from CI build
+      - name: Verify RC image exists
         run: |
-          docker pull ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.short_sha.outputs.tag }}
+          docker buildx imagetools inspect \
+            ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.staging_rc.outputs.tag }}
 
-      - name: Retag and push image (prod release tag + SHA backup)
+      # 🏷️ Determine next stable SemVer based on PR labels (major/minor/patch)
+      - name: Fetch PR labels from staging -> main merge (if present)
+        id: pr_labels
         run: |
-          PROD_TAG=${{ steps.release.outputs.version }}
-          SHA_TAG=prod-${{ steps.short_sha.outputs.tag }}
+          PR_NUMBER=$(git log -1 --pretty=%B | grep -oE '#[0-9]+' | tr -d '#')
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
 
-          # Retag for versioned release
-          docker tag ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.short_sha.outputs.tag }} \
-                     ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:$PROD_TAG
+          if [ -n "$PR_NUMBER" ]; then
+            LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name')
+          else
+            LABELS=""
+          fi
+          echo "labels=$LABELS" >> $GITHUB_OUTPUT
+          echo "Labels: $LABELS"
+        env:
+          GH_TOKEN: ${{ github.token }}
 
-          # Retag also with SHA (for traceability)
-          docker tag ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.short_sha.outputs.tag }} \
-                     ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:$SHA_TAG
-
-          # Push both
-          docker push ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:$PROD_TAG
-          docker push ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:$SHA_TAG
-
-      - name: Update kustomization.yaml with release image tag
+      - name: Compute next stable SemVer
+        id: semver
         run: |
-          echo "Updating image to ${{ steps.release.outputs.version }}"
-          yq eval ".images[0].newTag = \"${{ steps.release.outputs.version }}\"" -i k8s/overlays/prod/kustomization.yaml
+          mkdir -p metadata
+          if [ -f "${{ env.VERSION_FILE }}" ]; then
+            CURRENT=$(cat "${{ env.VERSION_FILE }}")
+          else
+            CURRENT="v1.0.0"
+          fi
 
-      - name: Commit updated kustomization.yaml
+          MAJOR=$(echo "$CURRENT" | cut -d. -f1 | tr -d v)
+          MINOR=$(echo "$CURRENT" | cut -d. -f2)
+          PATCH=$(echo "$CURRENT" | cut -d. -f3)
+
+          BUMP="patch"
+          if echo "${{ steps.pr_labels.outputs.labels }}" | grep -q "bump:major"; then
+            BUMP="major"
+          elif echo "${{ steps.pr_labels.outputs.labels }}" | grep -q "bump:minor"; then
+            BUMP="minor"
+          elif echo "${{ steps.pr_labels.outputs.labels }}" | grep -q "bump:patch"; then
+            BUMP="patch"
+          fi
+
+          if [ "$BUMP" = "major" ]; then
+            MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
+          elif [ "$BUMP" = "minor" ]; then
+            MINOR=$((MINOR + 1)); PATCH=0
+          else
+            PATCH=$((PATCH + 1))
+          fi
+
+          NEXT="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "$NEXT" > "${{ env.VERSION_FILE }}"
+          echo "next=$NEXT" >> $GITHUB_OUTPUT
+          echo "✅ Next stable: $NEXT"
+
+      # 🔁 Retag RC image → stable SemVer and 'latest', push both
+      - name: Retag RC to stable and latest
+        run: |
+          SRC="${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.staging_rc.outputs.tag }}"
+          STABLE="${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.semver.outputs.next }}"
+          LATEST="${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:latest"
+
+          docker pull "$SRC"
+          docker tag "$SRC" "$STABLE"
+          docker tag "$SRC" "$LATEST"
+          docker push "$STABLE"
+          docker push "$LATEST"
+
+      # 📦 Pin prod overlay to the stable SemVer tag (immutable)
+      - name: Update prod overlay to stable version
+        run: |
+          yq eval ".images[0].newTag = \"${{ steps.semver.outputs.next }}\"" -i k8s/overlays/prod/kustomization.yaml
+
+      # 📝 Write prod metadata (optional but useful)
+      - name: Write prod metadata
+        run: |
+          NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          mkdir -p metadata
+          cat <<EOF > metadata/prod.yaml
+          version: ${{ steps.semver.outputs.next }}
+          from_rc: ${{ steps.staging_rc.outputs.tag }}
+          promoted_at: "$NOW"
+          EOF
+
+      - name: Commit & push manifest + metadata + version file
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add k8s/overlays/prod/kustomization.yaml
-          git commit -m "chore(prod): update image tag to ${{ steps.release.outputs.version }}"
+          git add k8s/overlays/prod/kustomization.yaml metadata/prod.yaml ${{ env.VERSION_FILE }}
+          git commit -m "chore(prod): release ${{ steps.semver.outputs.next }} (from ${{ steps.staging_rc.outputs.tag }})"
           git push
+
+      # 🏷️ Create a Git tag for the release (matches SemVer)
+      - name: Create Git Tag
+        run: |
+          git tag ${{ steps.semver.outputs.next }}
+          git push origin ${{ steps.semver.outputs.next }}
+
+      # 🧾 Optional: generate & publish GitHub Release (kept; you already had this)
+      - name: Generate PR-based changelog
+        id: changelog
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 --tags --exclude=${{ steps.semver.outputs.next }} 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then RANGE=""; else RANGE="$LAST_TAG..HEAD"; fi
+
+          PR_LIST=$(git log $RANGE --pretty=format:"%s" | grep -oE '#[0-9]+' | tr -d '#' | sort -u)
+          NOTES=""
+          for PR in $PR_LIST; do
+            TITLE=$(gh pr view $PR --json title --jq '.title')
+            NOTES="${NOTES}- ${TITLE} (#${PR})"$'\n'
+          done
+          if [ -z "$NOTES" ]; then NOTES="No PRs found for this release."; fi
+
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.semver.outputs.next }}
+          name: "Release ${{ steps.semver.outputs.next }}"
+          body: |
+            ## 🚀 Production Release ${{ steps.semver.outputs.next }}
+            **From RC:** `${{ steps.staging_rc.outputs.tag }}`
+
+            ### Changes in this release:
+            ${{ steps.changelog.outputs.notes }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
