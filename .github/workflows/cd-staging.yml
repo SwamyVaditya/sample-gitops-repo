@@ -1,13 +1,15 @@
 name: CD to Staging
 
+# 🔁 Trigger when changes land on the staging branch (via PR merge)
 on:
   push:
-    branches:
-      - staging
+    branches: [ "staging" ]
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/sample-app
+  PROD_VERSION_FILE: metadata/prod_version.txt       # last stable prod version
+  STAGING_VERSION_FILE: metadata/staging_version.txt # last rc version recorded
 
 jobs:
   deploy-staging:
@@ -18,66 +20,114 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repo (staging)
         uses: actions/checkout@v4
+        with:
+          ref: staging
+          fetch-depth: 0
 
-      - name: Set lowercase image name
+      - name: Lowercase image name
         id: image_name
         run: echo "name=${IMAGE_NAME,,}" >> $GITHUB_OUTPUT
 
-      - name: Get image tag from dev overlay
+      # 🧩 Read the short-SHA that dev produced (post-merge file in staging branch)
+      - name: Get image tag from dev overlay (short SHA)
         id: dev_tag
         run: |
           TAG=$(yq eval '.images[0].newTag' k8s/overlays/dev/kustomization.yaml)
-          if [ -z "$TAG" ]; then
-            echo "❌ No image tag found in dev overlay"
-            exit 1
+          if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
+            echo "❌ No image tag found in dev overlay"; exit 1
           fi
           echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "✅ Dev tag: $TAG"
 
-          echo "✅ Found image tag: $TAG"
-            
-      #- name: Extract short SHA
-      #  id: short_sha
-      #  run: echo "tag=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-
-      - name: Log in to GitHub Container Registry
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull image from CI build
+      - name: Verify the dev image exists
         run: |
-          docker pull ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.dev_tag.outputs.tag }}
+          docker buildx imagetools inspect \
+            ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.dev_tag.outputs.tag }}
 
-      - name: Retag and push image (staging tag)
-        id: retag_push
+      # 🏷️ Compute next pre-release SemVer: vX.Y.Z-rc.N
+      # Base uses last prod version (if none, start at v1.0.0).
+      # RC counter increments if base unchanged; resets when prod increments.
+      - name: Compute next RC version
+        id: rc
         run: |
-          
-          tag=$(echo ${{ steps.dev_tag.outputs.tag }} | cut -d '-' -f 2)
-          STAGING_TAG=staging-$tag
+          mkdir -p metadata
 
-          docker tag ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.dev_tag.outputs.tag }} \
-                     ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:$STAGING_TAG
+          if [ -f "${{ env.PROD_VERSION_FILE }}" ]; then
+            BASE=$(cat "${{ env.PROD_VERSION_FILE }}")
+          else
+            BASE="v1.0.0"
+          fi
 
-          docker push ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:$STAGING_TAG
+          # Strip leading 'v'
+          BASE_NUM=${BASE#v}
 
-          echo "staging_tag=$STAGING_TAG" >> $GITHUB_OUTPUT
+          # Determine previous rc (if any)
+          PREV_RC=""
+          if [ -f "${{ env.STAGING_VERSION_FILE }}" ]; then
+            PREV_RC=$(cat "${{ env.STAGING_VERSION_FILE }}")
+          fi
 
-          echo "✅ Staging tag: $STAGING_TAG"
+          # Extract previous base and rc if file exists
+          PREV_BASE=""
+          PREV_N=0
+          if [[ "$PREV_RC" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)-rc\.([0-9]+)$ ]]; then
+            PREV_BASE="v${BASH_REMATCH[1]}"
+            PREV_N="${BASH_REMATCH[2]}"
+          fi
 
-            
-      - name: Update staging overlay with new image tag
+          if [ "$PREV_BASE" = "v${BASE_NUM}" ]; then
+            N=$((PREV_N + 1))
+          else
+            N=1
+          fi
+
+          NEXT="v${BASE_NUM}-rc.${N}"
+          echo "$NEXT" > "${{ env.STAGING_VERSION_FILE }}"
+          echo "next=$NEXT" >> $GITHUB_OUTPUT
+          echo "✅ Next RC: $NEXT"
+
+      # 🔁 Retag dev image → RC tag and push
+      - name: Retag image to RC and push
         run: |
-          echo "Updating image to ${{ steps.retag_push.outputs.staging_tag }}"
-          yq eval ".images[0].newTag = \"${{ steps.retag_push.outputs.staging_tag }}\"" -i k8s/overlays/staging/kustomization.yaml
+          SRC="${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.dev_tag.outputs.tag }}"
+          RC="${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.rc.outputs.next }}"
 
-      - name: Commit updated kustomization.yaml
+          docker pull "$SRC"
+          docker tag "$SRC" "$RC"
+          docker push "$RC"
+
+      # 📦 Update staging overlay to point to RC tag
+      - name: Update staging overlay to RC image
+        run: |
+          yq eval ".images[0].newTag = \"${{ steps.rc.outputs.next }}\"" -i k8s/overlays/staging/kustomization.yaml
+
+      # 📝 Write promotion metadata (optional but useful)
+      - name: Write staging metadata
+        run: |
+          COMMIT_SHA=$(git rev-parse --short HEAD)
+          NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          mkdir -p metadata
+          cat <<EOF > metadata/staging.yaml
+          rc_version: ${{ steps.rc.outputs.next }}
+          source_short_sha: ${{ steps.dev_tag.outputs.tag }}
+          commit_sha: $COMMIT_SHA
+          promoted_at: "$NOW"
+          EOF
+
+      - name: Commit & push manifest + metadata
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add k8s/overlays/staging/kustomization.yaml
-          git commit -m "chore(staging): update image tag to ${{ steps.retag_push.outputs.tag }}"
+          git add k8s/overlays/staging/kustomization.yaml metadata/staging.yaml metadata/staging_version.txt
+          git commit -m "chore(staging): promote ${{
+            steps.dev_tag.outputs.tag }} as ${{ steps.rc.outputs.next }}"
           git push
