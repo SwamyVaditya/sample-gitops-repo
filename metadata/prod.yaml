@@ -1,4 +1,3 @@
-version: v1.3.6
-image_tag: 6f12676
-commit_sha: 3ae38c53c544868fafa4628f011eecbd196185a6
-promoted_at: "2025-08-19T01:19:37Z"
+version: v1.3.7
+from_rc: v1.3.2-rc.1
+promoted_at: "2025-08-21T22:24:53Z"
