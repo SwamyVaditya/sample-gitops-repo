@@ -1,0 +1,49 @@
+name: CD - ArgoCD Secure Overlay (Validate)
+
+on:
+  push:
+    branches: [ main, dev, staging ]
+    paths:
+      - 'k8s/overlays/secure/**'
+      - 'argocd/argo-secure.yaml'
+      - '.github/workflows/cd-secure.yml'
+  pull_request:
+    branches: [ main, dev, staging ]
+    paths:
+      - 'k8s/overlays/secure/**'
+      - 'argocd/argo-secure.yaml'
+      - '.github/workflows/cd-secure.yml'
+  workflow_dispatch:
+
+jobs:
+  validate-secure-overlay:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install kustomize
+        run: |
+          curl -sSL https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh | bash
+          sudo mv kustomize /usr/local/bin/kustomize
+          kustomize version
+
+      - name: Kustomize build (secure)
+        run: |
+          kustomize build k8s/overlays/secure > /tmp/secure.yaml
+          echo "Rendered secure overlay:"
+          head -n 100 /tmp/secure.yaml || true
+
+      - name: Basic YAML lint (yq present check)
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          yq --version
+          # quick parse validation of key docs
+          yq eval '.' k8s/overlays/secure/argocd-cm.yaml >/dev/null
+          yq eval '.' k8s/overlays/secure/argocd-rbac-cm.yaml >/dev/null
+          yq eval '.' argocd/argo-secure.yaml >/dev/null
+
+      # (Optional) Slack notify on failures/success — you already have prod notifications.
+      # We can wire similar here later if you like.
