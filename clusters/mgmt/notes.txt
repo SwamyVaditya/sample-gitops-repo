@@ -1,0 +1,31 @@
+
+
+# Create mgmt-cluster (Argo CD will be deployed here)
+k3d cluster create mgmt-cluster --servers 1 --agents 1 --api-port 6443 -p "8081:80@loadbalancer" --kubeconfig-switch-context
+
+# Create apps-cluster (dev/staging/prod apps go here)
+> k3d cluster create apps-cluster --servers 1 --agents 1 --api-port 6444 -p "8082:80@loadbalancer" --kubeconfig-update-default --kubeconfig-switch-context
+
+
+Confirm both clusters are up using:
+
+> kubectl config get-contexts
+> kubectl config use-context k3d-mgmt-cluster
+> kubectl get nodes
+
+> kubectl config use-context k3d-apps-cluster
+> kubectl get nodes
+
+
+
+🛠️ Step 1: Switch to apps-cluster
+> kubectl config use-context k3d-apps-cluster
+
+🛠️ Step 2: Create Namespaces
+You can create them all with one command:
+
+> kubectl create namespace dev
+> kubectl create namespace staging
+> kubectl create namespace prod
+
+
