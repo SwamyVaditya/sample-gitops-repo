@@ -32,3 +32,21 @@ data:
   #   clientID: $oidc.github.clientID
   #   clientSecret: $oidc.github.clientSecret
   #   requestedScopes: ["openid","profile","email"]
+  
+  # (Optional) Example Dex skeleton for later:
+  #dex.config: |
+  #  connectors:
+  #    # GitHub example
+  #    - type: github
+  #      id: github
+  #      name: GitHub
+  #      config:
+  #        clientID: $oidc.github.clientID
+  #        clientSecret: $oidc.github.clientSecret
+          
+  # add an additional local user with apiKey and login capabilities
+  #   apiKey - allows generating API keys
+  #   login - allows to login using UI
+  accounts.swamy: apiKey, login
+  # disables user. User is enabled by default
+  # accounts.swamy.enabled: "false"

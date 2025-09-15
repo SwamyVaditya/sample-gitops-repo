@@ -1,0 +1,36 @@
+_________________________________________________
+Register apps-cluster with ArgoCD on mgmt-cluster
+-------------------------------------------------
+
+Switch back to mgmt-cluster:
+
+> kubectl config use-context k3d-mgmt-cluster
+
+1. Get apps-cluster Kubeconfig:
+
+- Export the apps-cluster kubeconfig for ArgoCD to access it:
+> k3d kubeconfig get apps-cluster > apps-cluster-kubeconfig.yaml
+
+- Extract the CA certificate and server URL (needed for the secret):
+ 
+> kubectl config view --raw -o jsonpath='{.clusters[?(@.name=="k3d-apps-cluster")].cluster.certificate-authority-data}' > apps-cluster-ca.crt
+> SERVER_URL=$(kubectl config view --raw -o jsonpath='{.clusters[?(@.name=="k3d-apps-cluster")].cluster.server}')
+> echo $SERVER_URL  # Should be https://0.0.0.0:6444 or similar
+
+
+2. Create ArgoCD Cluster Secret:
+   This secret lets ArgoCD authenticate to apps-cluster using its kubeconfig.
+
+   apps-cluster-secret.yaml
+
+   - Replace <base64-ca-data>:
+   > cat apps-cluster-ca.crt | base64 -w 0  # Copy this into the YAML
+
+   - Edit server with the correct URL if different.
+
+   - Apply:
+   > kubectl apply -f apps-cluster-secret.yaml
+
+   - Verify:
+   > kubectl get secrets -n argocd apps-cluster  # Should exist
+   > argocd cluster list  # Should show apps-cluster

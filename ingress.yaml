@@ -4,9 +4,9 @@ metadata:
   name: argocd-server-ingress
   namespace: argocd
   annotations:
-    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    ingress.kubernetes.io/ssl-redirect: "true"
 spec:
-  ingressClassName: nginx
   rules:
   - host: argo.localdev.me
     http:
@@ -17,4 +17,8 @@ spec:
           service:
             name: argocd-server
             port:
-              number: 80 
+              number: 443
+  tls:
+  - hosts:
+    - argo.localdev.me
+    secretName: argocd-tls-7k8sg

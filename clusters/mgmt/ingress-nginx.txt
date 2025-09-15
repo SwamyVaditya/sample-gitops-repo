@@ -1,0 +1,157 @@
+______________________________________
+NGINX Ingress Controller Installation
+--------------------------------------
+
+NGINX in k3d: Avoid hostNetwork: true manifests (like KIND's). 
+Use Helm or bare-metal manifests for LoadBalancer/NodePort services that work with k3d's loadbalancer and k3s's ServiceLB.
+
+1. Add/Update Helm Repo
+> helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+> helm repo update
+
+2. Install:
+> helm install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace
+
+
+This deploys a LoadBalancer service by default, which integrates with 
+k3s's ServiceLB to bind to ports 80/443 on your nodes, resolving the empty response issue.
+
+_______________________________________________________________________________________________________________________________________
+
+Verify:
+
+> kubectl get pods -n ingress-nginx     # Controller should be 1/1 Running
+> kubectl get svc -n ingress-nginx      # ingress-nginx-controller: LoadBalancer, ports 80/TCP,443/TCP (EXTERNAL-IP <pending> is OK)
+> kubectl get ingressclass              # nginx listed
+> kubectl logs -n ingress-nginx deployment/ingress-nginx-controller     # Look for "NGINX started" (no errors)
+
+_______________________________________________________________________________________________________________________________________
+
+
+Logs for Peace of Mind:
+
+> kubectl logs -n ingress-nginx deployment/ingress-nginx-controller | tail -10      # Should show clean proxying to ArgoCD
+> kubectl logs -n argocd deployment/argocd-server | grep -i insecure                # Confirms --insecure flag applied
+
+
+Uninstall Later: 
+If needed, 
+> helm uninstall ingress-nginx -n ingress-nginx     # (removes everything, including cluster-scoped resources).
+
+_______________________________________________________________________________________________________________________________________
+
+    _____________________________________________
+==> NGINX Ingress Controller Installation Issue
+    ---------------------------------------------
+
+Issue: 
+After installing the NGINX Ingress Controller with 
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml, 
+the pod (ingress-nginx-controller) was stuck in Pending for over 8 minutes. 
+kubectl describe pod likely showed "0/2 nodes are available: 2 node(s) didn't have free ports" due to hostNetwork: true 
+conflicting with k3d's loadbalancer port mappings (80:80, 443:443).
+
+Diagnosis:                      ___________________
+The KIND-specific manifest used "hostNetwork: true", which tried to bind ports 80/443 directly on the nodes (Docker containers), 
+but k3d's loadbalancer already reserved those ports. 
+The NodePort service (80:32089/TCP,443:31586/TCP) didn't align with your direct port mappings.
+
+
+Fixes:
+
+- Uninstalled the KIND manifest: 
+> kubectl delete -f <kind-deploy.yaml>.
+
+- Installed the bare-metal manifest: 
+> kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.2/deploy/static/provider/baremetal/deploy.yaml 
+which avoids hostNetwork and uses a Deployment with NodePort service.
+
+- Verified: 
+> kubectl get pods -n ingress-nginx     showed ingress-nginx-controller as 1/1 Running, 
+> kubectl get svc -n ingress-nginx      listed NodePort service, and 
+> kubectl get ingressclass              confirmed the nginx class.
+
+
+    __________________________________________________
+==> ArgoCD Installation and Initial Access Failure
+    ---------------------------------------------------
+
+Issue: 
+After installing ArgoCD 
+(kubectl create namespace argocd; 
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml) 
+
+and applying your Ingress (argocd-ingress.yaml), http://argo.localdev.me returned "ERR_EMPTY_RESPONSE" in the browser, 
+
+and curl -v -H "Host: argo.localdev.me" http://127.0.0.1 got an empty reply.
+
+Diagnosis: 
+The NodePort service (80:32089/TCP) didn't bind to port 80 on the nodes, 
+so k3d's loadbalancer (forwarding host:80 to node:80) couldn't reach the controller. 
+The Ingress was correctly configured (kubectl describe ingress showed Address and Sync events), 
+but traffic wasn't reaching the NGINX pod.
+
+Fixes:
+
+- Uninstalled the bare-metal manifest: kubectl delete namespace ingress-nginx.
+- Removed leftover cluster-scoped resources causing Helm conflicts:
+
+kubectl delete clusterrole ingress-nginx
+kubectl delete clusterrolebinding ingress-nginx
+kubectl delete ingressclass nginx
+kubectl delete validatingwebhookconfiguration ingress-nginx-admission
+
+
+- Installed NGINX via Helm for proper LoadBalancer service integration with k3s's ServiceLB:
+
+> helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+> helm repo update
+> helm install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace
+
+
+- Reapplied the ArgoCD Ingress:
+  argocd-ingress.yaml
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server-ingress
+  namespace: argocd
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: argo.localdev.me
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: argocd-server
+            port:
+              number: 80
+
+- Added server.insecure: "true" to argocd-cmd-params-cm ConfigMap to 
+  make the ArgoCD server serve HTTP (avoiding TLS mismatches):
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cmd-params-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cmd-params-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  server.insecure: "true"
+
+
+- Verified:
+http://argo.localdev.me loaded the UI,
+curl -v returned 200 OK with ArgoCD HTML,
+and argocd login argo.localdev.me --grpc-web succeeded (with a non-blocking TLS warning due to the local domain).
+
+
+

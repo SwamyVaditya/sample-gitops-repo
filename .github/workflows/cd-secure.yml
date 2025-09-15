@@ -43,7 +43,8 @@ jobs:
           # quick parse validation of key docs
           yq eval '.' k8s/overlays/secure/argocd-cm.yaml >/dev/null
           yq eval '.' k8s/overlays/secure/argocd-rbac-cm.yaml >/dev/null
-          yq eval '.' argocd/argo-secure.yaml >/dev/null
+          yq eval '.' argocd/sample-app-secure.yaml >/dev/null
+      #    yq eval '.' argocd/argo-secure.yaml >/dev/null
 
       # (Optional) Slack notify on failures/success — you already have prod notifications.
       # We can wire similar here later if you like.
