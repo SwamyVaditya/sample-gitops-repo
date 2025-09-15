@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nodejs-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/argoproj/argocd-example-apps  # Replace with your sample-gitops-repo
+    targetRevision: HEAD
+    path: guestbook  # Replace with path to your Node.js app manifests
+  destination:
+    # server: https://0.0.0.0:6444  # Matches apps-cluster server URL
+    # server: https://127.0.0.1:6444
+    server: https://host.docker.internal:6444
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

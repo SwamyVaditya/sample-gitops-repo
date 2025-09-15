@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-rbac-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  # Default every logged-in user/group to read-only
+  policy.default: role:readonly
+
+  # Role definitions (CSV)
+  policy.csv: |
+    # Readonly can view projects, apps and logs
+    p, role:readonly, applications, get, */*, allow
+    p, role:readonly, projects, get, *, allow
+    p, role:readonly, repositories, get, *, allow
+    p, role:readonly, clusters, get, *, allow
+    p, role:readonly, logs, get, */*, allow
+
+    # Deployer can operate only within 'default' project
+    p, role:deployer, applications, sync, default/*, allow
+    p, role:deployer, applications, get, default/*, allow
+    p, role:deployer, applications, update, default/*, allow
+    p, role:deployer, applications, delete, default/*, deny
+
+    # Devs can operate only within 'dev' namespace (project)
+    p, role:devs, applications, get, dev/*, allow
+    p, role:devs, applications, sync, dev/*, allow
+    p, role:ops, applications, *, */*, allow
+
+    p, role:dev, applications, get, dev/*, allow
+    p, role:dev, applications, sync, dev/*, allow
+    p, role:staging, applications, get, staging/*, allow
+    p, role:staging, applications, sync, staging/*, allow
+    p, role:prod, applications, get, prod/*, allow
+
+    # Admin can do anything (full access)
+    p, role:admin, *, *, *, allow
+
+    g, swamy, role:admin
+
+    g, alice, role:devs
+    g, bob, role:ops
+
+
+  # Optional group bindings (uncomment + adjust when SSO is wired)
+  # groups.csv: |
+  #   g, github:my-org/argocd-admins, role:admin
+  #   g, github:my-org/argocd-deployers, role:deployer
+  
