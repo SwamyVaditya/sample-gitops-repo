@@ -4,7 +4,6 @@ namePrefix: staging-
 namespace: staging
 resources:
   - ../../base
-
 patches:
   - path: patch-deployment.yaml
   - path: patch-ingress.yaml
