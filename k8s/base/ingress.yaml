@@ -7,7 +7,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: dev.myapp.localdev.me
+  - host: base.myapp.localdev.me
     http:
       paths:
       - path: /
