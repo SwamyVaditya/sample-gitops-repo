@@ -4,6 +4,7 @@ resources:
   - ../../base
 patches:
   - path: patch-deployment.yaml
+  - path: patch-ingress.yaml
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
     newTag: "v1.0.0-rc.2"
