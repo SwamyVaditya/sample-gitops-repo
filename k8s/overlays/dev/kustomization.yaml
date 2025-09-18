@@ -1,3 +1,5 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
 namePrefix: dev-
 namespace: dev
 resources:
@@ -15,5 +17,3 @@ patches:
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
     newTag: "b950758"
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization

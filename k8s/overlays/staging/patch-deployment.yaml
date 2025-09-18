@@ -4,4 +4,10 @@ metadata:
   name: sample-app
 spec:
   replicas: 1
-  
+  template:
+    spec:
+      containers:
+      - name: sample-app
+        env:
+        - name: ENV
+          value: "staging"
