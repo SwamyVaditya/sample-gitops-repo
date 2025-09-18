@@ -1,19 +1,11 @@
+# k8s/base/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: sample-app-ingress
+  namespace: default
   annotations:
     kubernetes.io/ingress.class: nginx
 spec:
   ingressClassName: nginx
-  rules:
-  - host: base.myapp.localdev.me
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: dev-sample-app  # Adjust to your app's Service name
-            port:
-              number: 80
+  rules: []
