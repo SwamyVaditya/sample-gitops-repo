@@ -14,6 +14,6 @@ patches:
       name: sample-app-ingress
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
-    newTag: "9cb06f6"
+    newTag: "b950758"
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
