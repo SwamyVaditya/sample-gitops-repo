@@ -20,9 +20,16 @@ ports:
 
 # Optional: make localhost aliases for ingress domains like argo.localdev.me
 options:
-  k3d:
-    wait: true
-    disableLoadbalancer: false
+  k3s:
+    extraArgs:
+      - arg: "--disable=traefik"
+        nodeFilters:
+          - server:*
   kubeconfig:
     updateDefaultKubeconfig: true
     switchCurrentContext: true
+#  k3d:
+#    wait: true
+#    disableLoadbalancer: false
+#    timeout: "10m0s"
+#    verbose: true
