@@ -3,7 +3,7 @@ const app = express();
 
 // Root endpoint
 app.get("/", (req, res) => {
-  res.send("Testing workflows with ArgoCD!");
+  res.send("Testing cd-prod workflow!");
 });
 
 // Health check endpoint
