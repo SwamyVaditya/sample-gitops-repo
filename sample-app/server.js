@@ -3,7 +3,7 @@ const app = express();
 
 // Root endpoint
 app.get("/", (req, res) => {
-  res.send("Testing working of Kustomize with ArgoCD!");
+  res.send("Testing workflows with ArgoCD!");
 });
 
 // Health check endpoint

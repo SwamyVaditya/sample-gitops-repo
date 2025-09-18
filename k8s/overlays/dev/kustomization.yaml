@@ -16,4 +16,4 @@ patches:
       name: sample-app-ingress
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
-    newTag: "13fb789"
+    newTag: "2c60fd8"
