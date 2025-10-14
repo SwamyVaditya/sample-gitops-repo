@@ -6,6 +6,10 @@ metadata:
     kubernetes.io/ingress.class: nginx
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - staging.myapp.localdev.me
+    secretName: myapp-tls
   rules:
   - host: staging.myapp.localdev.me
     http:
