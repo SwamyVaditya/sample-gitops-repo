@@ -4,8 +4,14 @@ metadata:
   name: sample-app-ingress
   annotations:
     kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - dev.myapp.localdev.me
+    secretName: myapp-tls
   rules:
   - host: dev.myapp.localdev.me
     http:
