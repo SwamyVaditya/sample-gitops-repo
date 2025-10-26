@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: dev-sample-app-cert
+  namespace: dev
+spec:
+  secretName: dev-sample-app-tls
+  duration: 2160h   # 90 days
+  renewBefore: 360h # 15 days
+  commonName: dev.myapp.localdev.me
+  dnsNames:
+    - dev.myapp.localdev.me
+  issuerRef:
+    name: selfsigned-clusterissuer
+    kind: ClusterIssuer

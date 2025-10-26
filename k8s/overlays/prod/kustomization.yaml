@@ -10,3 +10,5 @@ patches:
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
     newTag: bbc5de9
+transformers:
+  - env-label-transformer.yaml

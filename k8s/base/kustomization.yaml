@@ -10,4 +10,7 @@ labels:
       app.kubernetes.io/part-of: myapp
 commonAnnotations:
   argocd.argoproj.io/sync-wave: "1"
-namespace: default
+#namespace: default
+
+# Labels applied to all base resources.
+# Annotations keep Argo CD sync ordering.

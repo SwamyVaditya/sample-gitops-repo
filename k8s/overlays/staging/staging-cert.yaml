@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: staging-sample-app-cert
+  namespace: staging
+spec:
+  secretName: staging-sample-app-tls
+  duration: 2160h
+  renewBefore: 360h
+  commonName: staging.myapp.localdev.me
+  dnsNames:
+    - staging.myapp.localdev.me
+  issuerRef:
+    name: selfsigned-clusterissuer
+    kind: ClusterIssuer
