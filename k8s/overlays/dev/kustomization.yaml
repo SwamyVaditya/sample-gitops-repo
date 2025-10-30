@@ -4,6 +4,7 @@ namePrefix: dev-
 namespace: dev
 resources:
   - ../../base/
+  - dev-cert.yaml
 patches:
   - path: patch-deployment.yaml
     target:
