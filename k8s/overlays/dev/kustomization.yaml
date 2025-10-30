@@ -17,7 +17,7 @@ patches:
       name: sample-app-ingress
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
-    newTag: "7a7204c"
+    newTag: "b243bac"
 transformers:
   - env-label-transformer.yaml
 # Dev overlay kustomization.yaml
@@ -31,7 +31,6 @@ transformers:
 # This overlay is tailored for the development environment
 # ensuring proper resource naming, namespace assignment,
 # and image versioning specific to dev deployments.
-
 # Prefix ensures resource names don’t collide across environments.
 # Namespace isolates dev resources within the cluster.
 # Patches customize base resources for dev-specific settings.
