@@ -44,7 +44,7 @@ app.get("/metrics", async (req, res) => {
 
 // Root endpoint
 app.get("/", (req, res) => {
-  res.send("Testing Observability using Prometheus and Grafana!");
+  res.send("Testing Observability using Prometheus and Grafana !!");
 });
 
 // Health check endpoint
