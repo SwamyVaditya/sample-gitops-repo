@@ -11,7 +11,9 @@ spec:
   tls:
   - hosts:
     - dev.myapp.localdev.me
-    secretName: myapp-tls
+    secretName: dev-sample-app-tls
+    # secretName: myapp-tls
+    
   rules:
   - host: dev.myapp.localdev.me
     http:

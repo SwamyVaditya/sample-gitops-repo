@@ -4,9 +4,16 @@ namePrefix: prod-
 namespace: prod
 resources:
   - ../../base
+  - prod-cert.yaml
 patches:
   - path: patch-deployment.yaml
   - path: patch-ingress.yaml
+  - path: patch-service-monitor.yaml
+    target:
+      kind: ServiceMonitor
+      name: sample-app
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
     newTag: bbc5de9
+transformers:
+  - env-label-transformer.yaml
