@@ -10,8 +10,9 @@ spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - prod.myapp.localdev.me
-    secretName: myapp-tls
+    - myapp.localdev.me
+    secretName: prod-sample-app-tls
+    # secretName: myapp-tls
   rules:
   - host: myapp.localdev.me
     http:

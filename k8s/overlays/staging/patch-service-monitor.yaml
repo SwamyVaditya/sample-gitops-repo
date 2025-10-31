@@ -1,0 +1,6 @@
+# k8s/overlays/dev/patch-service-monitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sample-app
+  namespace: staging          # <-- forces the namespace to 'staging'          

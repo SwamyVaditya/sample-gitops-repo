@@ -11,7 +11,8 @@ spec:
   tls:
   - hosts:
     - staging.myapp.localdev.me
-    secretName: myapp-tls
+    secretName: staging-sample-app-tls
+    # secretName: myapp-tls
   rules:
   - host: staging.myapp.localdev.me
     http:

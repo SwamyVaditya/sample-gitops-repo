@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd          # Argo CD runs here (mgmt-cluster)
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/swamyvaditya/sample-gitops-repo
+    targetRevision: HEAD
+    path: k8s/monitoring     # <-- Helm + cert + namespace
+  destination:
+    server: https://host.docker.internal:6444   # k3d-apps-cluster
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

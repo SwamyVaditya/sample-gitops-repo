@@ -1,0 +1,9 @@
+apiVersion: builtin
+kind: LabelTransformer
+metadata:
+  name: env-label-transformer
+labels:
+  environment: staging
+fieldSpecs:
+  - path: metadata/labels
+    create: true
