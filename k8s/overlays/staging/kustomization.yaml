@@ -5,10 +5,13 @@ namespace: staging
 resources:
   - ../../base
   - staging-cert.yaml
-  - service-monitor.yaml
 patches:
   - path: patch-deployment.yaml
   - path: patch-ingress.yaml
+  - path: patch-service-monitor.yaml   
+    target:
+      kind: ServiceMonitor
+      name: sample-app
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
     newTag: bbc5de9
