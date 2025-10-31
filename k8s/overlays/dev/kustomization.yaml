@@ -18,7 +18,7 @@ patches:
       name: sample-app-ingress
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
-    newTag: "b57a2fa"
+    newTag: "9585e7c"
 transformers:
   - env-label-transformer.yaml
 # Dev overlay kustomization.yaml
