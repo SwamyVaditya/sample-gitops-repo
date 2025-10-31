@@ -5,6 +5,7 @@ namespace: dev
 resources:
   - ../../base/
   - dev-cert.yaml
+  - service-monitor.yaml
 patches:
   - path: patch-deployment.yaml
     target:
