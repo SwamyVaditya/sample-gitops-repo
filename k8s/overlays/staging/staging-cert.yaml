@@ -1,7 +1,7 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: staging-sample-app-cert
+  name: sample-app-cert
   namespace: staging
 spec:
   secretName: staging-sample-app-tls
