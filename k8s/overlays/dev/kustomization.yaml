@@ -21,7 +21,7 @@ patches:
       name: sample-app
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
-    newTag: "30c0dcb"
+    newTag: "504f346"
 transformers:
   - env-label-transformer.yaml
 # Dev overlay kustomization.yaml
