@@ -14,8 +14,8 @@ spec:
   
   # --- SOURCE: The "What" to install (The Helm Chart) ---
   source:
-    # 1. The URL of the external Helm chart repository
-    repoURL: https://kubernetes.github.io/ingress-nginx
+    # 1. The URL of the repository
+    repoURL: https://github.com/swamyvaditya/sample-gitops-repo.git
     targetRevision: main 
     # CRITICAL: Path points to the directory containing kustomization.yaml
     path: clusters/mgmt/ingress-nginx
