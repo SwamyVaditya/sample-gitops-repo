@@ -9,10 +9,10 @@ spec:
   project: default
   
   source:
-    repoURL: https://github.com/your-org/my-gitops-repo.git
+    repoURL: https://github.com/swamyvaditya/sample-gitops-repo.git
     targetRevision: main 
     # Path to the Kustomize directory containing the Ingress manifest
-    path: clusters/argocd-mgmt 
+    path: clusters/mgmt/argocd-mgmt 
     
   destination:
     # CRITICAL: Since Argo CD is deployed here, use the default cluster reference
