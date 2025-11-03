@@ -38,6 +38,7 @@ Uninstall Later:
 If needed, 
 > helm uninstall ingress-nginx -n ingress-nginx     # (removes everything, including cluster-scoped resources).
 
+- Check version - https://github.com/kubernetes/ingress-nginx
 _______________________________________________________________________________________________________________________________________
 
     _____________________________________________
@@ -111,6 +112,8 @@ kubectl delete validatingwebhookconfiguration ingress-nginx-admission
 
 - Reapplied the ArgoCD Ingress:
   argocd-ingress.yaml
+
+  (Now - argocd-server-ingress.yaml)
 
 apiVersion: networking.k8s.io/v1
 kind: Ingress

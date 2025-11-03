@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd 
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  # --- SOURCE: The Source Repository and Path ---
+  source:
+    # 1. Point to your Infrastructure Repository
+    repoURL: https://github.com/your-org/gitops-infra-repo.git
+    
+    # 2. Use the 'main' branch or your specific infrastructure branch
+    targetRevision: main 
+    
+    # 3. CRITICAL: The path Argo CD should look into. 
+    # This directory must contain the kustomization.yaml file.
+    path: clusters/mgmt/cert-manager 
+    
+  # --- DESTINATION: Where to Install ---
+  destination:
+    server: https://kubernetes.default.svc 
+    # Argo CD will find the target namespace from the kustomization.yaml
+    namespace: cert-manager 
+    
+  # --- CONFIGURATION: Tell Argo CD to use Kustomize ---
+  # Since the 'path' points to a directory with kustomization.yaml, 
+  # Argo CD automatically uses the Kustomize generator by default.
+  # We still specify it for clarity.
+  plugin:
+    name: kustomize # Explicitly state the generator
+    
+  # --- SYNC POLICY: GitOps Automation ---
+  syncPolicy:
+    automated:
+      prune: true     # Allows deletion of resources removed from Git
+      selfHeal: true  # Automatically fixes drift
+    syncOptions:
+      - CreateNamespace=true # Ensures the target namespace is created
