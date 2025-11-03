@@ -11,8 +11,9 @@ spec:
   # --- SOURCE: The Source Repository and Path ---
   source:
     # 1. Point to your Infrastructure Repository
-    repoURL: https://github.com/your-org/gitops-infra-repo.git
-    
+    # repoURL: https://github.com/your-org/gitops-infra-repo.git
+    repoURL: https://github.com/swamyvaditya/sample-gitops-repo.git
+
     # 2. Use the 'main' branch or your specific infrastructure branch
     targetRevision: main 
     
@@ -30,8 +31,8 @@ spec:
   # Since the 'path' points to a directory with kustomization.yaml, 
   # Argo CD automatically uses the Kustomize generator by default.
   # We still specify it for clarity.
-  plugin:
-    name: kustomize # Explicitly state the generator
+  # plugin:
+  #  name: kustomize # Explicitly state the generator
     
   # --- SYNC POLICY: GitOps Automation ---
   syncPolicy:
