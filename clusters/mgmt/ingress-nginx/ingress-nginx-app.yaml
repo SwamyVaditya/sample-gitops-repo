@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ingress-nginx
+  # Deploy the Application object in the Argo CD namespace
+  namespace: argocd 
+  # Important: This finalizer allows Argo CD to correctly clean up resources 
+  # if you delete the Application CRD later.
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  # The project it belongs to (use 'default' unless you have others)
+  project: default
+  
+  # --- SOURCE: The "What" to install (The Helm Chart) ---
+  source:
+    # 1. The URL of the external Helm chart repository
+    repoURL: https://kubernetes.github.io/ingress-nginx
+    targetRevision: main 
+    # CRITICAL: Path points to the directory containing kustomization.yaml
+    path: clusters/mgmt/ingress-nginx
+          
+  # --- DESTINATION: The "Where" to install it ---
+  destination:
+    # The cluster where Argo CD should apply the resources.
+    # 'https://kubernetes.default.svc' means the cluster where Argo CD itself is running (mgmt-cluster in your context).
+    server: https://kubernetes.default.svc 
+    # The namespace to install the controller into.
+    namespace: ingress-nginx
+    
+  # --- SYNC POLICY: The "How" to maintain it (The GitOps magic) ---
+  syncPolicy:
+    automated:
+      prune: true     # Allows Argo CD to delete resources that are removed from Git
+      selfHeal: true  # Automatically reverts manual changes to match the Git state
+    syncOptions:
+      - CreateNamespace=true # Ensures the target namespace is created if it doesn't exist

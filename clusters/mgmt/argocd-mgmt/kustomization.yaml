@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- argocd-server-ingress.yaml
+# Include other necessary resources like the TLS Secret here
+# - argocd-tls-secret.yaml
