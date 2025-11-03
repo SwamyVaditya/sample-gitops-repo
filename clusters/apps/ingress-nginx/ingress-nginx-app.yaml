@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ingress-nginx-apps-cluster # Unique name for this instance
+  namespace: argocd 
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  # --- SOURCE: The shared GitOps config path ---
+  source:
+    repoURL: https://github.com/swamyvaditya/sample-gitops-repo.git
+    targetRevision: main 
+    # CRITICAL: Points to the directory containing the kustomization.yaml 
+    # which wraps the Ingress-Nginx Helm chart.
+    path: clusters/apps/ingress-nginx 
+    
+  # --- DESTINATION: Targets the Apps Cluster via host.docker.internal ---
+  destination:
+    # 💥 CRITICAL: Use the Docker host reference you provided
+    server: https://host.docker.internal:6444
+    namespace: ingress-nginx 
+    
+  # --- SYNC POLICY ---
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true # Ensures the target namespace is created if it doesn't exist.

@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager-apps-cluster # Unique name for this instance
+  namespace: argocd 
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  # --- SOURCE: Points to the shared configuration for Cert-Manager ---
+  source:
+    repoURL: https://github.com/swamyvaditya/sample-gitops-repo.git
+    targetRevision: main 
+    # CRITICAL: Points to the directory containing the kustomization.yaml
+    path: clusters/apps/cert-manager 
+    
+  # --- DESTINATION: Targets the Apps Cluster ---
+  destination:
+    # 💥 CRITICAL: Replace this with the correct API Server address of your apps-cluster
+    #server: https://<apps-cluster-api-server-address>
+    server: https://host.docker.internal:6444
+
+    # OR, if you are using the ApplicationSet `cluster-resource` generator, 
+    # you might use the cluster name if it's managed via secret/ApplicationSet. 
+    
+    namespace: cert-manager 
+    
+  # --- SYNC POLICY ---
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
