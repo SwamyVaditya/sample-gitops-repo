@@ -3,5 +3,6 @@ kind: Kustomization
 
 resources:
 - argocd-server-ingress.yaml
+- argocd-cert.yaml
 # Include other necessary resources like the TLS Secret here
 # - argocd-tls-secret.yaml
