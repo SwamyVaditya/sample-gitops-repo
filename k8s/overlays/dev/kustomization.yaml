@@ -24,6 +24,7 @@ images:
     newTag: "504f346"
 transformers:
   - env-label-transformer.yaml
+
 # Dev overlay kustomization.yaml
 # - Adds 'dev-' prefix to resource names
 # - Sets namespace to 'dev'

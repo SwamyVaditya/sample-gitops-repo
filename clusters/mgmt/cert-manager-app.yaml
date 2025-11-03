@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd 
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  # --- SOURCE: The Cert-Manager Helm Chart ---
+  source:
+    # 1. Official Helm Chart Repository URL
+    repoURL: https://charts.jetstack.io
+    # 2. The chart name
+    chart: cert-manager
+    # 3. Pin the exact version (replaces --version v1.15.0)
+    targetRevision: "v1.19.1"
+    
+    # 4. Helm configuration (replaces --set installCRDs=true)
+    helm:
+      values: |
+        installCRDs: true # CRDs are managed by the Helm chart directly
+        replicaCount: 1   # Example: adjust replica count if needed 
+#       replicaCount: 2   # Example: ensure high availability  
+  # --- DESTINATION: Where to install it (replaces kubectl create namespace) ---
+  destination:
+    server: https://kubernetes.default.svc 
+    # The target namespace (replaces kubectl create namespace cert-manager)
+    namespace: cert-manager 
+    
+  # --- SYNC POLICY: How to manage it ---
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # Argo CD will create the target namespace if it doesn't exist.
+      - CreateNamespace=true
