@@ -9,8 +9,8 @@ spec:
     repoURL: https://github.com/swamyvaditya/sample-gitops-repo
     targetRevision: HEAD
     path: k8s/monitoring     # <-- Helm + cert + namespace
-    kustomize:
-      buildOptions: --enable-helm
+    #kustomize:
+    #  buildOptions: --enable-helm
   destination:
     server: https://host.docker.internal:6444   # k3d-apps-cluster
     namespace: monitoring
