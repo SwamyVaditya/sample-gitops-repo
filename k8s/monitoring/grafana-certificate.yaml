@@ -5,8 +5,11 @@ metadata:
   namespace: monitoring
 spec:
   secretName: grafana-tls
+  duration: 2160h   # 90 days
+  renewBefore: 360h # 15 days
+  commonName: grafana.myapp.localdev.me
   dnsNames:
     - grafana.myapp.localdev.me
   issuerRef:
-    name: selfsigned-issuer
+    name: selfsigned-clusterissuer
     kind: ClusterIssuer
