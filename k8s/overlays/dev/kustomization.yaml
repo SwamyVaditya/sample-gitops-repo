@@ -19,11 +19,11 @@ patches:
     target:
       kind: ServiceMonitor
       name: sample-app
-  #   additionalAnnotations:
-  #     argocd.argoproj.io/sync-wave: "1"
+      #   additionalAnnotations:
+      #     argocd.argoproj.io/sync-wave: "1"
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
-    newTag: "315f1a4"
+    newTag: "32e17ca"
 transformers:
   - env-label-transformer.yaml
 # Dev overlay kustomization.yaml
