@@ -8,10 +8,10 @@ resources:
 patches:
   - path: patch-deployment.yaml
   - path: patch-ingress.yaml
-  - path: patch-service-monitor.yaml
-    target:
-      kind: ServiceMonitor
-      name: sample-app
+  #- path: patch-service-monitor.yaml
+  #  target:
+  #    kind: ServiceMonitor
+  #    name: sample-app
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
     newTag: v1.1.13
