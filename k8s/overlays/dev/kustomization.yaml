@@ -15,13 +15,13 @@ patches:
     target:
       kind: Ingress
       name: sample-app-ingress
-  #- path: patch-service-monitor.yaml
-  #  target:
-  #    kind: ServiceMonitor
-  #    name: sample-app
+      #- path: patch-service-monitor.yaml
+      #  target:
+      #    kind: ServiceMonitor
+      #    name: sample-app
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
-    newTag: "69b85fc"
+    newTag: "fa07ca1"
 transformers:
   - env-label-transformer.yaml
 # Dev overlay kustomization.yaml
