@@ -12,10 +12,13 @@ spec:
     repoURL: https://github.com/swamyvaditya/sample-gitops-repo
     targetRevision: HEAD
     path: k8s/monitoring     # <-- Helm + cert + namespace
-    helm:
-      parameters:
-        - name: helmcharts.kube-prometheus-stack.values
-          value: prometheus-values.yaml
+    kustomize:
+      commonAnnotations:
+        argocd.argoproj.io/helm-values-file: prometheus-values.yaml
+    #helm:
+    #  parameters:
+    #    - name: helmcharts.kube-prometheus-stack.values
+    #      value: prometheus-values.yaml
     
   destination:
     server: https://host.docker.internal:6444   # k3d-apps-cluster
