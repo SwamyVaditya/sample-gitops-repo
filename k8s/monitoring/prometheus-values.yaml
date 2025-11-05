@@ -27,5 +27,5 @@ grafana:
           - grafana.myapp.localdev.me
 
   # Optional: persist dashboards (if you want)
-  persistence:
-    enabled: false
+  #persistence:
+  #  enabled: false
