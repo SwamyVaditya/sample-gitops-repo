@@ -1,6 +1,10 @@
 # k8s/monitoring/prometheus-values.yaml
 installCRDs: true
 
+crds:
+  annotations: {}
+  labels: {}
+
 # Core Prometheus settings
 prometheus:
   prometheusSpec:
