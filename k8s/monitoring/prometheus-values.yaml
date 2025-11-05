@@ -1,0 +1,33 @@
+# k8s/monitoring/prometheus-values.yaml
+# --- CRITICAL CHANGE 1: Prevent the Helm chart from installing CRDs ---
+installCRDs: false 
+# --------------------------------------------------------------------
+
+# Core Prometheus settings
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorNamespaceSelector: {}
+
+# Grafana settings
+grafana:
+  adminPassword: admin123
+
+  # Use ClusterIP (not LoadBalancer) for local dev
+  service:
+    type: ClusterIP
+
+  # Ingress for HTTPS access
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - grafana.myapp.localdev.me
+    tls:
+      - secretName: grafana-tls
+        hosts:
+          - grafana.myapp.localdev.me
+
+  # Optional: persist dashboards (if you want)
+  persistence:
+    enabled: false
