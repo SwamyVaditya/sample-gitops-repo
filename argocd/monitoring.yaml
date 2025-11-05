@@ -1,18 +1,44 @@
-# k8s/applications/monitoring.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: monitoring
   namespace: argocd
+  annotations:
+    # 💥 CRITICAL: This MUST deploy BEFORE the main chart (wave 0)
+    argocd.argoproj.io/sync-wave: "-1"
 spec:
   project: default
   source:
-    repoURL: https://github.com/swamyvaditya/sample-gitops-repo
-    targetRevision: HEAD
-    path: k8s/monitoring
-    kustomize:
-      commonAnnotations:
-        argocd.argoproj.io/helm-values-file: values.yaml
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 79.1.1
+    helm:
+      releaseName: prometheus
+      values: |
+        installCRDs: true
+
+        crds:
+          annotations: {}
+          labels: {}
+
+        prometheus:
+          prometheusSpec:
+            serviceMonitorSelectorNilUsesHelmValues: false
+            serviceMonitorNamespaceSelector: {}
+
+        grafana:
+          adminPassword: admin123
+          service:
+            type: ClusterIP
+          ingress:
+            enabled: true
+            ingressClassName: nginx
+            hosts:
+              - grafana.myapp.localdev.me
+            tls:
+              - secretName: grafana-tls
+                hosts:
+                  - grafana.myapp.localdev.me
   destination:
     server: https://host.docker.internal:6444
     namespace: monitoring
