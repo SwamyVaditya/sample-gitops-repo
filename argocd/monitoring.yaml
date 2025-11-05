@@ -3,6 +3,9 @@ kind: Application
 metadata:
   name: monitoring
   namespace: argocd          # Argo CD runs here (mgmt-cluster)
+  annotations:
+    # 💥 CRITICAL: Set the monitoring stack to deploy first
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   project: default
   source:
