@@ -4,8 +4,8 @@ metadata:
   name: monitoring
   namespace: argocd
   annotations:
-    # 💥 CRITICAL: This MUST deploy BEFORE the main chart (wave 0)
-    argocd.argoproj.io/sync-wave: "-1"
+    # 💥 CRITICAL: Set the main chart to deploy AFTER CRDs
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   project: default
   source:
@@ -15,7 +15,7 @@ spec:
     helm:
       releaseName: prometheus
       values: |
-        installCRDs: true
+        installCRDs: false
 
         crds:
           annotations: {}
