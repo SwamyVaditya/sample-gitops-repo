@@ -1,3 +1,0 @@
-# k8s/monitoring/crds-patch.yaml
-- op: remove
-  path: /metadata/annotations
