@@ -9,12 +9,22 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/swamyvaditya/sample-gitops-repo
-    targetRevision: HEAD
-    path: k8s/monitoring     # <-- Helm + cert + namespace
-    kustomize:
-      commonAnnotations:
-        argocd.argoproj.io/helm-values-file: prometheus-values.yaml
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 62.5.0
+    helm:
+      releaseName: prometheus
+      valueFiles:
+        #- values.yaml
+        - prometheus-values.yaml
+        
+    #repoURL: https://github.com/swamyvaditya/sample-gitops-repo
+    #targetRevision: HEAD
+    #path: k8s/monitoring     # <-- Helm + cert + namespace
+    #kustomize:
+    #  commonAnnotations:
+    #    argocd.argoproj.io/helm-values-file: prometheus-values.yaml
+    
     #helm:
     #  parameters:
     #    - name: helmcharts.kube-prometheus-stack.values
