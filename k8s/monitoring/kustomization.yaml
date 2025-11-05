@@ -18,5 +18,8 @@ helmCharts:
     valuesFile: values.yaml
 
 # 2. Patch CRDs to remove annotations
-patchesStrategicMerge:
-  - crds-patch.yaml
+# CORRECT: Use `patches`, not `patchesStrategicMerge`
+patches:
+  - path: crds-patch.yaml
+    target:
+      kind: CustomResourceDefinition
