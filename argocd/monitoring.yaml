@@ -15,8 +15,8 @@ spec:
     helm:
       releaseName: prometheus
       valueFiles:
-        #- values.yaml
-        - prometheus-values.yaml
+        - values.yaml
+        #- prometheus-values.yaml
         
     #repoURL: https://github.com/swamyvaditya/sample-gitops-repo
     #targetRevision: HEAD
