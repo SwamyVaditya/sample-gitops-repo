@@ -13,8 +13,9 @@ spec:
     targetRevision: HEAD
     path: k8s/monitoring     # <-- Helm + cert + namespace
     helm:
-      valueFiles:
-        - prometheus-values.yaml
+      parameters:
+        - name: helmcharts.kube-prometheus-stack.values
+          value: prometheus-values.yaml
     
   destination:
     server: https://host.docker.internal:6444   # k3d-apps-cluster
