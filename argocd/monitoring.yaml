@@ -1,41 +1,22 @@
+# k8s/applications/monitoring.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: monitoring
-  namespace: argocd          # Argo CD runs here (mgmt-cluster)
-  annotations:
-    # 💥 CRITICAL: Set the monitoring stack to deploy first
-    argocd.argoproj.io/sync-wave: "0"
+  namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://prometheus-community.github.io/helm-charts
-    chart: kube-prometheus-stack
-    targetRevision: 62.5.0
-    helm:
-      releaseName: prometheus
-      valueFiles:
-        - values.yaml
-        #- prometheus-values.yaml
-        
-    #repoURL: https://github.com/swamyvaditya/sample-gitops-repo
-    #targetRevision: HEAD
-    #path: k8s/monitoring     # <-- Helm + cert + namespace
-    #kustomize:
-    #  commonAnnotations:
-    #    argocd.argoproj.io/helm-values-file: prometheus-values.yaml
-    
-    #helm:
-    #  parameters:
-    #    - name: helmcharts.kube-prometheus-stack.values
-    #      value: prometheus-values.yaml
-    
+    repoURL: https://github.com/swamyvaditya/sample-gitops-repo
+    targetRevision: HEAD
+    path: k8s/monitoring
+    kustomize:
+      commonAnnotations:
+        argocd.argoproj.io/helm-values-file: values.yaml
   destination:
-    server: https://host.docker.internal:6444   # k3d-apps-cluster
+    server: https://host.docker.internal:6444
     namespace: monitoring
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
