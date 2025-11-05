@@ -23,7 +23,7 @@ patches:
       #     argocd.argoproj.io/sync-wave: "1"
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
-    newTag: "2d6a9b3"
+    newTag: "5f4ded3"
 transformers:
   - env-label-transformer.yaml
 # Dev overlay kustomization.yaml
