@@ -1,0 +1,26 @@
+# argocd/monitoring-crds.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring-crds
+  namespace: argocd
+  annotations:
+    # 💥 CRITICAL: This MUST deploy BEFORE the main chart (wave 0)
+    argocd.argoproj.io/sync-wave: "-1" 
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/swamyvaditya/sample-gitops-repo
+    targetRevision: HEAD
+    path: k8s/monitoring/crds # <-- Points to the CRD Kustomize base
+  destination:
+    server: https://host.docker.internal:6444
+    namespace: monitoring # CRDs are cluster-scoped, but this is fine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # CRDs often need a short pause to be fully registered
+      - 'ApplyServerSide=true' 
+      - 'Timeout=600s'
