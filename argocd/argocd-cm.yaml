@@ -1,0 +1,20 @@
+# Apply this patch to the argocd-cm ConfigMap in the 'argocd' namespace
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+data:
+  # --- CRITICAL CONFIGURATION SECTION ---
+  resource.customizations: |
+    apiextensions.k8s.io/CustomResourceDefinition:
+      normalizeLua: |
+        local obj = obj
+        local metadata = obj.metadata
+        
+        if metadata ~= nil then
+          metadata.annotations = {}
+          metadata.labels = {}
+        end
+
+        return obj

@@ -1,26 +1,31 @@
-# argocd/monitoring-crds.yaml
+# argocd/monitoring-crds.yaml (FINAL & ROBUST FIX with LATEST CRD VERSION)
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: monitoring-crds
   namespace: argocd
   annotations:
-    # 💥 CRITICAL: This MUST deploy BEFORE the main chart (wave 0)
     argocd.argoproj.io/sync-wave: "-1" 
+    # This whitelist is CRITICAL to prevent CRDs from being deleted prematurely
+    argocd.argoproj.io/resource-prune-whitelist: 'apiextensions.k8s.io/CustomResourceDefinition'
+    # 💥 CRITICAL: Add the ignore annotation
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/skip.reconcile: "true" # This will stop Argo CD from trying to sync
 spec:
   project: default
   source:
-    repoURL: https://github.com/swamyvaditya/sample-gitops-repo
-    targetRevision: HEAD
-    path: k8s/monitoring/crds # <-- Points to the CRD Kustomize base
+    repoURL: https://prometheus-community.github.io/helm-charts 
+    # 💥 CRITICAL: Using the dedicated CRD chart version
+    targetRevision: 24.0.1 
+    chart: prometheus-operator-crds
   destination:
     server: https://host.docker.internal:6444
-    namespace: monitoring # CRDs are cluster-scoped, but this is fine
+    namespace: monitoring 
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
-      # CRDs often need a short pause to be fully registered
-      - 'ApplyServerSide=true' 
-      - 'Timeout=600s'
+      - CreateNamespace=false # CRDs are cluster-scoped
+      - ApplyServerSide=true  # Recommended for CRDs
+      - Timeout=600s

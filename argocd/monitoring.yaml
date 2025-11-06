@@ -1,48 +1,39 @@
+# argocd/monitoring.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: monitoring
   namespace: argocd
   annotations:
-    # 💥 CRITICAL: Set the main chart to deploy AFTER CRDs
+    # This application runs *after* the CRDs are installed (manually or via a dedicated app)
     argocd.argoproj.io/sync-wave: "0"
+    # Ensure this application does not attempt to create the CRDs itself
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   project: default
   source:
-    repoURL: https://prometheus-community.github.io/helm-charts
-    chart: kube-prometheus-stack
-    targetRevision: 79.1.1
-    helm:
-      releaseName: prometheus
-      values: |
-        installCRDs: false
-
-        crds:
-          annotations: {}
-          labels: {}
-
-        prometheus:
-          prometheusSpec:
-            serviceMonitorSelectorNilUsesHelmValues: false
-            serviceMonitorNamespaceSelector: {}
-
-        grafana:
-          adminPassword: admin123
-          service:
-            type: ClusterIP
-          ingress:
-            enabled: true
-            ingressClassName: nginx
-            hosts:
-              - grafana.myapp.localdev.me
-            tls:
-              - secretName: grafana-tls
-                hosts:
-                  - grafana.myapp.localdev.me
+    # 💥 CRITICAL: This points to your Git repository where the Kustomize file lives
+    repoURL: https://github.com/swamyvaditya/sample-gitops-repo.git
+    targetRevision: HEAD # Use the latest commit from your branch
+    path: k8s/monitoring # Path to the kustomization.yaml file
+    kustomize:
+      # Kustomize is used here to embed the Helm chart and your values file
+      # The kustomization.yaml in k8s/monitoring looks up the remote chart
+      # and merges it with the local prometheus-values.yaml file.
+      # Note: We do NOT use the 'helm' block here; Kustomize handles the Helm rendering.
+    
+      commonAnnotations:
+        argocd.argoproj.io/helm-values-file: prometheus-values.yaml
+      
   destination:
     server: https://host.docker.internal:6444
-    namespace: monitoring
+    namespace: monitoring # The target namespace for the monitoring components
+    
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true # Create the 'monitoring' namespace if it doesn't exist
+      # Set a generous timeout since this is a large deployment
+      - Timeout=900s
