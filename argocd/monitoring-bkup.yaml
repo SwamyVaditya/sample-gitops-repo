@@ -1,0 +1,48 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+  annotations:
+    # 💥 CRITICAL: Set the main chart to deploy AFTER CRDs
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 79.1.1
+    helm:
+      releaseName: prometheus
+      values: |
+        installCRDs: false
+
+        crds:
+          annotations: {}
+          labels: {}
+
+        prometheus:
+          prometheusSpec:
+            serviceMonitorSelectorNilUsesHelmValues: false
+            serviceMonitorNamespaceSelector: {}
+
+        grafana:
+          adminPassword: admin123
+          service:
+            type: ClusterIP
+          ingress:
+            enabled: true
+            ingressClassName: nginx
+            hosts:
+              - grafana.myapp.localdev.me
+            tls:
+              - secretName: grafana-tls
+                hosts:
+                  - grafana.myapp.localdev.me
+  destination:
+    server: https://host.docker.internal:6444
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

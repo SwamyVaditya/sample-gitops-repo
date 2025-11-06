@@ -1,0 +1,31 @@
+# argocd/monitoring-crds.yaml (FINAL & ROBUST VERSION)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring-crds
+  namespace: argocd
+  annotations:
+    # 💥 CRITICAL: This MUST deploy BEFORE the main chart (wave -1)
+    argocd.argoproj.io/sync-wave: "-1" 
+    argocd.argoproj.io/resource-prune-whitelist: 'apiextensions.k8s.io/CustomResourceDefinition'
+spec:
+  project: default
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts 
+    targetRevision: 79.1.1
+    #targetRevision: 62.5.0  # Must match the version in k8s/monitoring/kustomization.yaml
+    path: crds                 # 💥 CRITICAL: Use the simplified path 'crds' 
+    chart: kube-prometheus-stack # 💥 Specify the chart name here
+    directory:
+      jsonnet: {} 
+  destination:
+    server: https://host.docker.internal:6444
+    namespace: monitoring 
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+      - ApplyServerSide=true
+      - Timeout=600s
