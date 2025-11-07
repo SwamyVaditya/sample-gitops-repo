@@ -9,6 +9,30 @@ prometheus:
     serviceMonitorSelectorNilUsesHelmValues: false
     serviceMonitorNamespaceSelector: {}
 
+    service:
+      type: ClusterIP
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - prometheus.myapp.localdev.me
+    tls:
+      - secretName: prometheus-tls
+        hosts:
+          - prometheus.myapp.localdev.me
+
+# Alertmanager settings
+alertmanager:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - alertmanager.myapp.localdev.me
+    tls:
+      - secretName: alertmanager-tls
+        hosts:
+          - alertmanager.myapp.localdev.me
+
 # Grafana settings
 grafana:
   adminPassword: admin123
@@ -27,6 +51,7 @@ grafana:
       - secretName: grafana-tls
         hosts:
           - grafana.myapp.localdev.me
+
 
   # Optional: persist dashboards (if you want)
   persistence:
