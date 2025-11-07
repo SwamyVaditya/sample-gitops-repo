@@ -2,6 +2,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 # The Helm chart that Kustomize should pull and template
+resources:
+#  - namespace.yaml
+#  - grafana-certificate.yaml
+  - slo-rules.yaml
+
 helmCharts:
   - name: kube-prometheus-stack
     repo: https://prometheus-community.github.io/helm-charts
