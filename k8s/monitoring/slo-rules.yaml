@@ -1,0 +1,29 @@
+# k8s/monitoring/slo-rules.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: nodejs-slo
+  namespace: monitoring
+  labels:
+    role: alert-rules
+spec:
+  groups:
+    - name: nodejs-slo
+      rules:
+        - alert: HTTPAvailabilitySLO
+          expr: 100 * (1 - (rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]))) < 99.9
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "HTTP Availability SLO breached"
+            description: "99.9% availability SLO violated for {{ $labels.path }} in {{ $labels.namespace }}. Current: {{ $value | printf \"%.2f\" }}%"
+
+        - alert: HTTPErrorBudgetBurn
+          expr: rate h ttp_requests_total{status=~\"5..\"}[1h] > (1 - 0.999) * 14.4 * rate(http_requests_total[1h])
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Error budget burning fast"
+            description: "1h burn rate > 14.4x budget. SLO at risk."

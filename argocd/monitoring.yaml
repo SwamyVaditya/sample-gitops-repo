@@ -16,12 +16,6 @@ spec:
     repoURL: https://github.com/swamyvaditya/sample-gitops-repo.git
     targetRevision: HEAD # Use the latest commit from your branch
     path: k8s/monitoring # Path to the kustomization.yaml file
-    #kustomize:
-      # Kustomize is used here to embed the Helm chart and your values file
-      # The kustomization.yaml in k8s/monitoring looks up the remote chart
-      # and merges it with the local prometheus-values.yaml file.
-      # Note: We do NOT use the 'helm' block here; Kustomize handles the Helm rendering.
-    
       
   destination:
     server: https://host.docker.internal:6444
