@@ -20,7 +20,7 @@ spec:
             description: "99.9% availability SLO violated for {{ $labels.path }} in {{ $labels.namespace }}. Current: {{ $value | printf \"%.2f\" }}%"
 
         - alert: HTTPErrorBudgetBurn
-          expr: rate h ttp_requests_total{status=~\"5..\"}[1h] > (1 - 0.999) * 14.4 * rate(http_requests_total[1h])
+          expr: rate(http_requests_total{status=~"5.."}[1h]) > (1 - 0.999) * 14.4 * rate(http_requests_total[1h])
           for: 5m
           labels:
             severity: warning
