@@ -1,0 +1,14 @@
+# k8s/monitoring/prometheus-certificate.yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: prometheus-tls
+  namespace: monitoring
+spec:
+  secretName: prometheus-tls
+  commonName: prometheus.myapp.localdev.me
+  dnsNames:
+    - prometheus.myapp.localdev.me
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
