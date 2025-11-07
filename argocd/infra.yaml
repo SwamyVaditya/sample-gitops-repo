@@ -1,13 +1,7 @@
 # argocd/infra.yaml
 # RECOMMENDED: Create a Bootstrap App for Infrastructure components
-# This App deploys the monitoring stack (Prometheus + Grafana) using Kustomize
-# THIS IS NOT USED AS MONITORING APP ITSELF, just for bootstrapping infra for MONITORING
 apiVersion: argoproj.io/v1alpha1
 kind: Application
-annotations:
-    # 💥 CRITICAL: Add the ignore annotation
-    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
-    argocd.argoproj.io/skip.reconcile: "true" # This will stop Argo CD from trying to sync
 metadata:
   name: infra
   namespace: argocd
@@ -16,7 +10,7 @@ spec:
   source:
     repoURL: https://github.com/swamyvaditya/sample-gitops-repo
     targetRevision: HEAD
-    path: k8s/monitoring
+    path: k8s/monitoring/infra # Path to the infra kustomization.yaml
   destination:
     server: https://host.docker.internal:6444
     namespace: monitoring
