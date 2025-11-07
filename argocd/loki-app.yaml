@@ -1,4 +1,3 @@
-# argocd/loki-app.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -13,7 +12,8 @@ spec:
     helm:
       releaseName: loki
       values: |
-        # Use filesystem (no S3)
+        deploymentMode: SingleBinary
+
         loki:
           storage:
             type: filesystem
@@ -29,15 +29,20 @@ spec:
                   prefix: loki_index_
                   period: 24h
 
-        # Enable Promtail
+        # Disable scalable targets
+        backend:
+          replicas: 0
+        read:
+          replicas: 0
+        write:
+          replicas: 0
+
         promtail:
           enabled: true
 
-        # Disable Grafana sidecar
         grafana:
           enabled: false
 
-        # Enable ServiceMonitor
         serviceMonitor:
           enabled: true
 
