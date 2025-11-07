@@ -6,6 +6,8 @@ metadata:
   namespace: monitoring
 spec:
   secretName: alertmanager-tls
+  duration: 2160h   # 90 days
+  renewBefore: 360h # 15 days
   commonName: alertmanager.myapp.localdev.me
   dnsNames:
     - alertmanager.myapp.localdev.me
