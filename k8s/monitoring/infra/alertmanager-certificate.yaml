@@ -12,5 +12,5 @@ spec:
   dnsNames:
     - alertmanager.myapp.localdev.me
   issuerRef:
-    name: selfsigned-issuer
+    name: selfsigned-clusterissuer
     kind: ClusterIssuer
