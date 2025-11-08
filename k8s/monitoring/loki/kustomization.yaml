@@ -1,14 +1,77 @@
 # k8s/monitoring/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# The Helm chart that Kustomize should pull and template
-  
+
+namespace: monitoring
+
+resources:
+  - namespace.yaml
+  - grafana-certificate.yaml
+  - slo-rules.yaml
+
 helmCharts:
   - name: loki
     repo: https://grafana.github.io/helm-charts
-    version: 6.46.0 # Must match your target version
+    version: 6.46.0
     releaseName: loki
-    namespace: monitoring # Set the namespace for the deployed resources
-    # Specify the local values file to override chart defaults
-    valuesFile: loki-values.yaml
+    namespace: monitoring
+    #valuesFile: loki-values.yaml
+    # ADD THIS: Pass extra values inline
+    valuesInline: |
+      deploymentMode: SingleBinary
 
+      
+      memcached:
+        enabled: false
+      chunks-cache:
+        enabled: false
+      results-cache:
+        enabled: false
+
+      
+      backend:
+        replicas: 0
+      read:
+        replicas: 0
+      write:
+        replicas: 0
+
+      
+      loki:
+        replicas: 1
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+
+        storage:
+          type: filesystem
+          filesystem:
+            chunks_directory: /var/loki/chunks
+            rules_directory: /var/loki/rules
+            wal_directory: /var/loki/wal
+
+        commonConfig:
+          replication_factor: 1
+
+        schemaConfig:
+          configs:
+            - from: "2024-01-01"
+              store: tsdb
+              object_store: filesystem
+              schema: v13
+              index:
+                prefix: loki_index_
+                period: 24h
+
+      promtail:
+        enabled: true
+
+      grafana:
+        enabled: false
+
+      serviceMonitor:
+        enabled: true
