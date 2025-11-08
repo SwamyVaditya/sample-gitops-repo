@@ -6,50 +6,18 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://grafana.github.io/helm-charts
-    chart: loki
-    targetRevision: 6.46.0
-    helm:
-      releaseName: loki
-      values: |
-        deploymentMode: SingleBinary
-
-        loki:
-          storage:
-            type: filesystem
-          commonConfig:
-            replication_factor: 1
-          schemaConfig:
-            configs:
-              - from: "2024-01-01"
-                store: tsdb
-                object_store: filesystem
-                schema: v13
-                index:
-                  prefix: loki_index_
-                  period: 24h
-
-        # Disable scalable targets
-        backend:
-          replicas: 0
-        read:
-          replicas: 0
-        write:
-          replicas: 0
-
-        promtail:
-          enabled: true
-
-        grafana:
-          enabled: false
-
-        serviceMonitor:
-          enabled: true
-
+    # 💥 CRITICAL: This points to your Git repository where the Kustomize file lives
+    repoURL: https://github.com/swamyvaditya/sample-gitops-repo.git
+    targetRevision: HEAD # Use the latest commit from your branch
+    path: k8s/monitoring/loki # Path to the kustomization.yaml file
+      
   destination:
     server: https://host.docker.internal:6444
-    namespace: monitoring
+    namespace: monitoring # The target namespace for the monitoring components
+    
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true # Create the 'monitoring' namespace if it doesn't exist
