@@ -1,0 +1,67 @@
+# installCRDs: false 
+
+deploymentMode: SingleBinary
+
+backend:
+  replicas: 0
+read:
+  replicas: 0
+write:
+  replicas: 0
+
+# memcached:
+#   enabled: false
+#   chunks-cache:
+#     enabled: false
+#   results-cache:
+#     enabled: false
+
+
+loki:
+  limits.cpu: "200m"
+  limits.memory: "256Mi"
+  requests.cpu: "100m"
+  requests.memory: "128Mi"
+
+  compactor:
+    replicas: 0
+  querier:
+    replicas: 0
+  queryFrontend:
+    replicas: 0
+  ruler:
+    replicas: 0
+  distributor:
+    replicas: 0
+
+  storage:
+    type: filesystem
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+      wal_directory: /loki/wal
+  
+  commonConfig:
+    replication_factor: 1
+
+  schemaConfig:
+    configs:
+      - from: "2024-01-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: loki_index_
+          period: 24h
+
+
+promtail:
+  enabled: true
+
+grafana:
+  enabled: false
+
+serviceMonitor:
+  enabled: true
+
+
