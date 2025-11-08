@@ -18,10 +18,17 @@ write:
 
 
 loki:
+  replicas: 1
+  
+  service:
+    type: ClusterIP
+  
+
   limits.cpu: "200m"
   limits.memory: "256Mi"
   requests.cpu: "100m"
   requests.memory: "128Mi"
+
 
   compactor:
     replicas: 0
