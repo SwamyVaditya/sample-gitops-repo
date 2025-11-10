@@ -17,9 +17,9 @@ const httpRequests = new client.Counter({
   name: 'http_requests_total',
   help: 'Total HTTP requests',
   labelNames: ['method', 'path', 'status'],
-  registers: [register]
+  //registers: [register]
 });
-//register.registerMetric(httpRequests);
+register.registerMetric(httpRequests);
 
 // Custom metric: HTTP request duration
 const httpRequestDuration = new client.Histogram({
@@ -52,7 +52,7 @@ app.get("/metrics", async (req, res) => {
 
 // Root endpoint
 app.get("/", (req, res) => {
-  res.send("Testing Observability using Prometheus and Grafana ---> !!");
+  res.send("Testing Observability using Prometheus and Grafana - Prometheus metrics !!");
 });
 
 // Health check endpoint
