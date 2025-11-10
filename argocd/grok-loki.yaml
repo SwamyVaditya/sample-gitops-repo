@@ -1,0 +1,178 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki
+  namespace: argocd
+spec:
+  project: default
+  
+  source:
+    chart: loki
+    repoURL: https://grafana.github.io/helm-charts
+    targetRevision: 6.30.0
+    helm:
+      releaseName: loki
+      values: |
+        # Deployment mode - CRITICAL: Must be SingleBinary for monolithic
+        deploymentMode: SingleBinary
+        
+        loki:
+          # Authentication
+          auth_enabled: false
+          
+          # Common configuration
+          commonConfig:
+            replication_factor: 1
+          
+          # Storage configuration - using filesystem for local dev
+          storage:
+            type: filesystem
+            filesystem:
+              chunks_directory: /var/loki/chunks
+              rules_directory: /var/loki/rules
+          
+          # Schema configuration
+          schemaConfig:
+            configs:
+              - from: 2024-01-01
+                store: tsdb
+                object_store: filesystem
+                schema: v13
+                index:
+                  prefix: index_
+                  period: 24h
+          
+          # Limits configuration - minimal for local dev
+          limits_config:
+            retention_period: 24h
+            max_query_series: 500
+            max_query_parallelism: 32
+            ingestion_rate_mb: 10
+            ingestion_burst_size_mb: 20
+            per_stream_rate_limit: 5MB
+            per_stream_rate_limit_burst: 10MB
+            reject_old_samples: true
+            reject_old_samples_max_age: 168h
+            split_queries_by_interval: 15m
+            max_cache_freshness_per_query: 10m
+          
+          # Compactor - required for retention
+          compactor:
+            working_directory: /var/loki/compactor
+            compaction_interval: 10m
+            retention_enabled: true
+            retention_delete_delay: 2h
+            retention_delete_worker_count: 50
+            delete_request_store: filesystem
+        
+        # Single Binary (Monolithic) configuration
+        singleBinary:
+          replicas: 1
+          
+          # Minimal resource requests and limits
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          
+          # Persistence for local storage
+          persistence:
+            enabled: true
+            size: 500Mi
+            storageClass: local-path
+        
+        # DISABLE all distributed components
+        backend:
+          replicas: 0
+        
+        read:
+          replicas: 0
+        
+        write:
+          replicas: 0
+        
+        # Gateway - disabled for direct access
+        gateway:
+          enabled: false
+        
+        # Monitoring - disabled for minimal resources
+        monitoring:
+          selfMonitoring:
+            enabled: false
+            grafanaAgent:
+              installOperator: false
+        
+        # Disable all caches
+        chunksCache:
+          enabled: false
+        
+        resultsCache:
+          enabled: false
+        
+        # Disable other components
+        ruler:
+          enabled: false
+        
+        indexGateway:
+          enabled: false
+        
+        bloomGateway:
+          enabled: false
+        
+        bloomCompactor:
+          enabled: false
+        
+        lokiCanary:
+          enabled: false
+        
+        test:
+          enabled: false
+        
+        # Service account
+        serviceAccount:
+          create: true
+          automountServiceAccountToken: true
+        
+        # RBAC
+        rbac:
+          create: true
+        
+        # Network and security policies - disabled
+        networkPolicy:
+          enabled: false
+        
+        # Promtail configuration
+        promtail:
+          enabled: true
+          config:
+            clients:
+              - url: http://loki:3100/loki/api/v1/push
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+        
+        # Grafana - disabled
+        grafana:
+          enabled: false
+        
+        # ServiceMonitor
+        serviceMonitor:
+          enabled: false
+  
+  destination:
+    server: https://host.docker.internal:6444
+    namespace: monitoring
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
