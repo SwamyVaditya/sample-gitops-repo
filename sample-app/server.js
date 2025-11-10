@@ -13,6 +13,14 @@ const app = express();
 client.collectDefaultMetrics({ register });
 
 
+const httpRequests = new client.Counter({
+  name: 'http_requests_total',
+  help: 'Total HTTP requests',
+  labelNames: ['method', 'path', 'status'],
+  registers: [register]
+});
+//register.registerMetric(httpRequests);
+
 // Custom metric: HTTP request duration
 const httpRequestDuration = new client.Histogram({
   name: "http_request_duration_ms",
