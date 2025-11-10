@@ -35,6 +35,7 @@ app.use((req, res, next) => {
   const end = httpRequestDuration.startTimer();
   res.on("finish", () => {
     end({ route: req.route?.path || req.path, code: res.statusCode, method: req.method });
+    httpRequests.inc({ method: req.method, path: req.path, status: res.statusCode });
   });
   next();
 });
