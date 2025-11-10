@@ -3,4 +3,8 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: sample-app
-  namespace: staging          # <-- forces the namespace to 'staging'          
+  namespace: staging          # <-- forces the namespace to 'staging'  
+spec:
+  selector:
+    matchLabels:
+      app: staging-sample-app

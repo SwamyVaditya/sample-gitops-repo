@@ -4,3 +4,7 @@ kind: ServiceMonitor
 metadata:
   name: sample-app
   namespace: prod          # <-- forces the namespace to 'prod'
+spec:
+  selector:
+    matchLabels:
+      app: prod-sample-app
