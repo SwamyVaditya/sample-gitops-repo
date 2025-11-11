@@ -6,8 +6,22 @@ installCRDs: false
 # Core Prometheus settings
 prometheus:
   prometheusSpec:
+    # serviceMonitorSelectorNilUsesHelmValues: false
+    # serviceMonitorNamespaceSelector: {}
+    # --- CRITICAL FIX 1: Allow Prometheus to find ServiceMonitors in any namespace ---
     serviceMonitorSelectorNilUsesHelmValues: false
-    serviceMonitorNamespaceSelector: {}
+    # By setting this empty, Prometheus will look for ServiceMonitors 
+    # that match the 'relabeling labels' *globally* across the cluster.
+    serviceMonitorNamespaceSelector: {} 
+    
+    # --- CRITICAL FIX 2: Set the ServiceMonitor label to match the one you are creating. ---
+    # The default for the chart is usually 'release: kube-prometheus-stack',
+    # but let's ensure it can find *your* ServiceMonitor created by Kustomize.
+    serviceMonitorSelector:
+      matchLabels:
+        release: kube-prometheus-stack
+        # Add the app label used on your ServiceMonitor for belt-and-suspenders
+        app.kubernetes.io/name: sample-app # Not strictly needed if using release label, but helps.
 
     service:
       type: ClusterIP
