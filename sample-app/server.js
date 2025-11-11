@@ -13,6 +13,14 @@ const app = express();
 client.collectDefaultMetrics({ register });
 
 
+const httpRequests = new client.Counter({
+  name: 'http_requests_total',
+  help: 'Total HTTP requests',
+  labelNames: ['method', 'path', 'status'],
+  //registers: [register]
+});
+register.registerMetric(httpRequests);
+
 // Custom metric: HTTP request duration
 const httpRequestDuration = new client.Histogram({
   name: "http_request_duration_ms",
@@ -27,6 +35,7 @@ app.use((req, res, next) => {
   const end = httpRequestDuration.startTimer();
   res.on("finish", () => {
     end({ route: req.route?.path || req.path, code: res.statusCode, method: req.method });
+    httpRequests.inc({ method: req.method, path: req.path, status: res.statusCode });
   });
   next();
 });
@@ -44,7 +53,7 @@ app.get("/metrics", async (req, res) => {
 
 // Root endpoint
 app.get("/", (req, res) => {
-  res.send("Testing Observability using Prometheus and Grafana ---> !!");
+  res.send("Testing Observability using Prometheus and Grafana - Prometheus metrics !!");
 });
 
 // Health check endpoint

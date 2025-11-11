@@ -1,3 +1,4 @@
+# k8s/overlays/dev/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namePrefix: dev-
@@ -15,15 +16,15 @@ patches:
     target:
       kind: Ingress
       name: sample-app-ingress
-  - path: patch-service-monitor.yaml
-    target:
-      kind: ServiceMonitor
-      name: sample-app
+      # - path: patch-service-monitor.yaml
+      #   target:
+      #     kind: ServiceMonitor
+      #     name: sample-app
       #   additionalAnnotations:
       #     argocd.argoproj.io/sync-wave: "1"
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
-    newTag: "8205c1b"
+    newTag: "180cc3b"
 transformers:
   - env-label-transformer.yaml
 # Dev overlay kustomization.yaml
