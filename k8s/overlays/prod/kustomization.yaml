@@ -1,3 +1,4 @@
+# k8s/overlays/prod/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namePrefix: prod-
@@ -12,6 +13,7 @@ patches:
     target:
       kind: ServiceMonitor
       name: sample-app
+    
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
     newTag: v1.1.49
