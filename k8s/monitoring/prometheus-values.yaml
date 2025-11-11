@@ -22,9 +22,18 @@ prometheus:
         release: kube-prometheus-stack
         # Add the app label used on your ServiceMonitor for belt-and-suspenders
         app.kubernetes.io/name: sample-app # Not strictly needed if using release label, but helps.
-
+    
     service:
       type: ClusterIP
+  
+  # 💥 CRITICAL FIX 2: Inject missing RBAC rules for ServiceMonitors
+  # This grants Prometheus permission to read the ServiceMonitor CRDs
+  rbac:
+    extraClusterRoleRules:
+    - apiGroups: ["monitoring.coreos.com"] # CRD API Group
+      resources: ["servicemonitors", "podmonitors"]
+      verbs: ["get", "list", "watch"]
+      
   ingress:
     enabled: true
     ingressClassName: nginx
