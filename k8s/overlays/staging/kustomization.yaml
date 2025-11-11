@@ -15,6 +15,6 @@ patches:
       name: sample-app
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
-    newTag: v1.1.41-rc.7
+    newTag: v1.1.41-rc.8
 transformers:
   - env-label-transformer.yaml
