@@ -16,6 +16,12 @@ helmCharts:
     # Specify the local values file to override chart defaults
     valuesFile: prometheus-values.yaml
 
+patches:
+- path: patch-prometheus-rbac.yaml # <-- New patch file
+  target:
+    kind: ClusterRole
+    name: kube-prometheus-stack-prometheus
+    
 # The namespace is used for the Helm chart release name
 # This should match the destination namespace in argocd/monitoring.yaml
 namespace: monitoring
