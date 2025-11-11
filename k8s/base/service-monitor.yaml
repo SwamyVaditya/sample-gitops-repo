@@ -15,16 +15,17 @@ spec:
   # The selector targets the Service (which Kustomize creates in the 'dev' namespace)
   selector:
     matchLabels:
-      app.kubernetes.io/name: dev-sample-app # This selects the Service in the 'dev' namespace
+      app.kubernetes.io/name: sample-app # This selects the Service in the 'dev' namespace
   # The namespaceSelector is crucial for Prometheus to find this object
   namespaceSelector:
-    matchNames:
-      - dev
-      - staging
-      - prod
-  # selector:
-  #   matchLabels:
-  #     app: sample-app
+    matchNames: [] # Empty means 'all namespaces'
+  
+  # If you want to restrict to specific namespaces, uncomment and set them:
+  #  matchNames:
+  #    - dev
+  #    - staging
+  #    - prod
+  
   endpoints:
   - port: http
     path: /metrics
