@@ -1,10 +1,12 @@
 # k8s/monitoring/patch-prometheus-rbac.yaml
+# THIS PATCH MUST NOW INCLUDE ALL DESIRED RULES!
+
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: kube-prometheus-stack-prometheus
 rules:
-  # This rule will be merged with the existing rules array
+  # 1. New Rules for ServiceMonitors (YOUR ADDITION)
   - apiGroups:
       - monitoring.coreos.com
     resources:
@@ -14,3 +16,44 @@ rules:
       - get
       - list
       - watch
+      
+  # 2. Re-added Default Rules (For scraping Kube targets)
+  - apiGroups:
+      - ''
+    resources:
+      - nodes
+      - nodes/metrics
+      - services
+      - endpoints
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+      
+  # 3. Re-added Default Rules (For endpointslices)
+  - apiGroups:
+      - discovery.k8s.io
+    resources:
+      - endpointslices
+    verbs:
+      - get
+      - list
+      - watch
+
+  # 4. Re-added Default Rules (For Ingress discovery)
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs:
+      - get
+      - list
+      - watch
+      
+  # 5. Re-added Default Rules (For non-resource URLs)
+  - nonResourceURLs:
+      - /metrics
+      - /metrics/cadvisor
+    verbs:
+      - get
