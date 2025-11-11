@@ -13,9 +13,8 @@ patches:
     target:
       kind: ServiceMonitor
       name: sample-app
-    
 images:
   - name: ghcr.io/swamyvaditya/sample-gitops-repo/sample-app
-    newTag: v1.1.49
+    newTag: v1.1.50
 transformers:
   - env-label-transformer.yaml
