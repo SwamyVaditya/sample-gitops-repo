@@ -4,7 +4,8 @@ kind: ServiceMonitor
 metadata:
   name: sample-app
   namespace: dev          # <-- forces the namespace to 'dev'
+
 spec:
-  selector:
-    matchLabels:
-      app: dev-sample-app   # <-- overrides the matchLabels to select dev pods 
+  namespaceSelector:
+    matchNames:
+      - dev # Only scrape targets in the 'dev' namespace

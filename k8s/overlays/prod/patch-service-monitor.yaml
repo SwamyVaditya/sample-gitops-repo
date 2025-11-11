@@ -1,10 +1,10 @@
-# k8s/overlays/dev/patch-service-monitor.yaml
+# k8s/overlays/prod/patch-service-monitor.yaml
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: sample-app
   namespace: prod          # <-- forces the namespace to 'prod'
 spec:
-  selector:
-    matchLabels:
-      app: prod-sample-app
+  namespaceSelector:
+    matchNames:
+      - prod # Only scrape targets in the 'prod' namespace
